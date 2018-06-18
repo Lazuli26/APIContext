@@ -1,0 +1,23 @@
+<div>
+  <h1>Texto a analizar:</h1>
+</div>
+<div>
+  <textarea rows="4" cols="50" [(ngModel)]="texto" placeholder="Coloque texto aquí para analizarlo">
+  </textarea>
+</div>
+<div>
+  Palabras clave:
+  <li *ngFor="let keyWord of keyWords">
+    {{keyWord}}
+  </li>
+</div>
+<div>
+  Puntuación de palabras:
+  <li *ngFor="let keyScore of keyScores">
+    {{keyScore}}
+  </li>
+</div>
+<div>
+  Puntuación:
+  {{score}}
+</div>
