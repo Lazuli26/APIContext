@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { API_KEYS } from './../../API_KEYS';
 // Las puntuaciones deben ir de -1 (negativo) a 1 (positiva), siendo 0 una puntuación neutral
 interface NLPRES {
   score: Number;
