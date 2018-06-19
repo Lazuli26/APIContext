@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { API_KEYS } from './../../API_KEYS';
+
 // Las puntuaciones deben ir de -1 (negativo) a 1 (positiva), siendo 0 una puntuación neutral
 interface NLPRES {
   score: Number;
@@ -7,11 +8,16 @@ interface NLPRES {
   keyScores: {key: String, value: Number};
 }
 class NLP {
-  constructor() {}
+  constructor() {
+  }
   google(text) {
     const keyScores = <{key: String, value: Number}> {};
     const keyWords = <String[]> [];
     const score = <Number> 0;
+    const document = {
+      content: text,
+      type: 'PLAIN_TEXT',
+    };
     return <NLPRES> {score: score, keyWords: keyWords, keyScores: keyScores};
   }
 }

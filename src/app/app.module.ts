@@ -17,7 +17,8 @@ import { MainComponent } from './main/main.component';
     RouterModule.forRoot([
       {'path': '**', component: MainComponent}
     ]),
-    FormsModule
+    FormsModule,
+    language
   ],
   providers: [],
   bootstrap: [AppComponent]
