@@ -1,35 +1,22 @@
-/**
- * Date: 05-03-2018
- * Last update: 09-03-2018
- * @author: Julio Adán Montano Hernandez 
- * @summary: this is the server definitions for the othello emulator. 
-*/
-
-/*********************************************************
-						IMPORTS
-*********************************************************/
 var express = require('express');
 var app = express();
 var http =  require('http');
-
-/************************************************
-Getting data for AWS Comprehend configuration
-*************************************************/
-var credentials = require('../NLP_test  user Credentials/credentials');
-var language="en";
+var AWS = require('aws-sdk');
+const glanguage = require('@google-cloud/language');
+var credentials = require('./API_KEYS').API_KEYS;
 
 /****************************************
- AWS Comprehend service import and configuration
+ AWS Comprehend service configuration
 ******************************************/
-var AWS = require('aws-sdk');
 AWS.config = new AWS.Config();
-AWS.config.accessKeyId = credentials.userID;
-AWS.config.secretAccessKey = credentials.accessKey;
-AWS.config.region = credentials.region;
+AWS.config.accessKeyId = credentials.amazon.userID;
+AWS.config.secretAccessKey = credentials.amazon.accessKey;
+AWS.config.region = credentials.amazon.region;
+var AmazonNLP = new AWS.Comprehend({apiVersion: credentials.amazon.API_version});
 
-var comprehend = new AWS.Comprehend({apiVersion: credentials.API_version});
-
-app.use(function(req, res, next) 
+// Instancia de Google Natural Languaje Processing
+const GoogleNLP = new glanguage.LanguageServiceClient();
+app.use(function(req, res, next)
 {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -37,57 +24,83 @@ app.use(function(req, res, next)
     next();
 });
 
-
-/** 
- * Allows registrate a user and return the id
- * @param {String} mail
- * @param {String} name 
- * @param {String} imageURL
- * @returns JSON
- * Checked
- */
-app.get('/getPlayerId',function(req, res)
-{    
-
-    db.func('mg_get_player', [req.query.mail, req.query.name, req.query.imageURL])    
-    .then(data => 
-    {        	  
-        res.end(JSON.stringify(data));
-    })
-    .catch(error=> 
-    {    	    	  
-        res.end(JSON.stringify(false));                
-    })      
-});
-
-
 app.get('/amazonComprehend',function(req,res){
 	console.log("peticion entrante");
 	var params = {
-                LanguageCode: language, 
+                LanguageCode: "en",
                 Text: req.query.text
             };
-
-    comprehend.detectKeyPhrases(params, function(err, data) {
+    AmazonNLP.detectKeyPhrases(params, function(err, data) {
                 if (err) console.log(err, err.stack); // an error occurred
                 else     console.log(data);           // successful response
                 res.end(JSON.stringify({"data":data}));
             });
-
 });
+app.get('/googleLanguage',function(req,res){
+	console.log("peticion entrante");
+  const document = {
+    content: req.query.text,
+    type: 'PLAIN_TEXT',
+  };
 
-
+  // Detects the sentiment of the text
+  GoogleNLP
+    .analyzeSentiment({document: document})
+    .then(results => {
+      const sentiment = results[0].documentSentiment;
+      console.log(`Text: ${text}`);
+      console.log(`Sentiment score: ${sentiment.score}`);
+      console.log(`Sentiment magnitude: ${sentiment.magnitude}`);
+    })
+    .catch(err => {
+      console.error('ERROR:', err);
+  });
+});
+app.get('/IBMWatson', function(req,res){
+  var request = require('request');
+  var headers = {
+      'Content-Type': 'application/json'
+  };
+  var dataString = {
+    "text": req.query.text,
+    "features": {
+      "sentiment": {},
+      "keywords": {
+        "sentiment": true
+      }
+    }
+  };
+  var options = {
+      url: 'https://gateway.watsonplatform.net/natural-language-understanding/api/v1/analyze?version=2017-02-27',
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(dataString),
+      auth: {
+          'user': 'bb64a147-f9f3-4579-85da-8f155815970f',
+          'pass': 'PrtIjxa8sGTB'
+      }
+  };
+  function callback(error, response, body) {
+      if (!error && response.statusCode == 200) {
+          console.log(body);
+          var watsy = JSON.parse(body)
+          var respuesta= {}
+          respuesta["score"] = watsy.sentiment.document.score;
+          respuesta["keyWords"] = [];
+          respuesta["keyScores"] = {};
+          for (let x=0;watsy.keywords[x]!=undefined;x++){
+            respuesta.keyWords.push(watsy.keywords[x].text);
+            respuesta.keyScores[watsy.keywords[x].text] = watsy.keywords[x].sentiment.score;
+          }
+          res.send(JSON.stringify(respuesta));
+      }
+  }
+  request(options, callback);
+})
 
 var server = app.listen(8081, function ()
-{                        
+{
 	var host = server.address().address;
     var port = server.address().port;
-    console.log("Esta corriendo en %s:%s", host, port);   
+    console.log("Esta corriendo en %s:%s", host, port);
 });
-
-
-
-
-
-
-

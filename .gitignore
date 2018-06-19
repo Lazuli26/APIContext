@@ -45,3 +45,7 @@ testem.log
 Thumbs.db
 
 src/API_KEYS\.ts
+
+Web service/API_KEYS\.ts
+
+Web service/API_KEYS\.js
