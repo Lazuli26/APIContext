@@ -32,8 +32,17 @@ const AzureNLP = new cognitiveServices.textAnalytics({
     endpoint: credentials.azure.azureEndpoint
 });
 
+/********************************************************
 
+AYLIENT TEXT ANALYSIS SERVICE
 
+*********************************************************/
+
+const AYLIENTextAPI = require('aylien_textapi');
+var textapi = new AYLIENTextAPI({
+  application_id: credentials.Aylien.appID,
+  application_key: credentials.Aylien.appKey
+});
 
 // Instancia de Google Natural Languaje Processing
 // const GoogleNLP = new glanguage.LanguageServiceClient();
@@ -60,7 +69,7 @@ app.get('/amazonComprehend',function(req,res){
     AmazonNLP.detectKeyPhrases(params, function(err, data) {
                 if (err){ 
                 		console.log(err, err.stack); // an error occurred}
-                		res.end(JSON.stringify({}));
+                		res.send(JSON.stringify({}));
                 	}
                 else
                 {     
@@ -112,7 +121,7 @@ app.get('/azureCognitiveService',function(req,res){
     
 	AzureNLP.keyPhrases({headers,body})
 		.then((response) => {
-			
+
 			//Format response
 			var respuesta={};
             respuesta["score"]=0;
@@ -147,7 +156,7 @@ app.get('/azureCognitiveService',function(req,res){
             })
 		.catch((err) => {
 			console.log(err);
-			res.end(JSON.stringify({"success":false,"data": []}));
+			res.send(JSON.stringify({"success":false,"data": []}));
             }); 
 
 	/*
@@ -162,6 +171,58 @@ app.get('/azureCognitiveService',function(req,res){
 	*/
 
 });
+
+app.get('/aylienTextApi',function(req,res){
+
+	const headers = {
+                'Content-type': 'application/json'
+            };
+
+    const body = {
+                "documents": [
+                    {
+                        "language": language,
+                        "id": 1,
+                        "text": req.query.text
+                    }
+                ]
+            };
+
+    textapi.entities(req.query.text, function(err, resp) {
+    
+  		if (err !== null) {
+    		res.send(JSON.stringify({}));
+  			} 
+  		else 
+  		{
+  			
+  			//format response
+            var respuesta={};
+            respuesta["score"]=0;
+            respuesta["keyScores"]=[];
+            var limite=resp.entities.keyword.length;
+            var keyPhrases= resp.entities.keyword;
+                		
+
+            for (let i=0; i< limite;i++){
+            	respuesta.keyScores.push(
+                	{
+                		"key": keyPhrases[i],
+                		"value": 0 
+
+                	}
+                	);
+            }
+			
+            res.send(JSON.stringify(respuesta));
+    	}
+  		
+	});
+    
+
+});
+
+
 
 app.get('/googleLanguage',function(req,res){
 	console.log("peticion entrante");

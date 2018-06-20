@@ -11,6 +11,9 @@ module.exports.API_KEYS = {
   	azureFirstKey:"eeeafa57524d498b82fbccc5da972f29",
   	azureSecondKey:"cce32bfea5f94249b09623426a2483b7",
   	azureEndpoint:"westus.api.cognitive.microsoft.com" 
+  },
+  Aylien:{
+  	appID: "ba7ccad4",
+  	appKey:"d09aa0fc49675186a44f8f1442fec5eb"
   }
 };
-
