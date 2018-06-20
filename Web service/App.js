@@ -15,7 +15,7 @@ var http =  require('http');
 /************************************************
 Getting data for AWS Comprehend configuration
 *************************************************/
-var credentials = require('../NLP_test  user Credentials/credentials');
+var credentials = require('./API_KEYS');
 var language="en";
 
 /****************************************
@@ -23,11 +23,21 @@ var language="en";
 ******************************************/
 var AWS = require('aws-sdk');
 AWS.config = new AWS.Config();
-AWS.config.accessKeyId = credentials.userID;
-AWS.config.secretAccessKey = credentials.accessKey;
-AWS.config.region = credentials.region;
+AWS.config.accessKeyId = credentials.amazon.userID;
+AWS.config.secretAccessKey = credentials.amazon.accessKey;
+AWS.config.region = credentials.amazon.region;
+var comprehend = new AWS.Comprehend({apiVersion: credentials.amazon.API_version});
 
-var comprehend = new AWS.Comprehend({apiVersion: credentials.API_version});
+/****************************************
+ Azure text analysis service import and configuration
+******************************************/
+const cognitiveServices = require('cognitive-services');
+const textAnalitics = new cognitiveServices.textAnalytics({
+    apiKey: credentials.azure.azureFirstKey,
+    endpoint: credentials.azure.azureEndpoint
+})
+
+
 
 app.use(function(req, res, next) 
 {
@@ -38,44 +48,66 @@ app.use(function(req, res, next)
 });
 
 
-/** 
- * Allows registrate a user and return the id
- * @param {String} mail
- * @param {String} name 
- * @param {String} imageURL
- * @returns JSON
- * Checked
- */
-app.get('/getPlayerId',function(req, res)
-{    
+app.get('/amazonComprehendService',function(req,res){
 
-    db.func('mg_get_player', [req.query.mail, req.query.name, req.query.imageURL])    
-    .then(data => 
-    {        	  
-        res.end(JSON.stringify(data));
-    })
-    .catch(error=> 
-    {    	    	  
-        res.end(JSON.stringify(false));                
-    })      
-});
-
-
-app.get('/amazonComprehend',function(req,res){
-	console.log("peticion entrante");
 	var params = {
                 LanguageCode: language, 
                 Text: req.query.text
             };
 
     comprehend.detectKeyPhrases(params, function(err, data) {
-                if (err) console.log(err, err.stack); // an error occurred
-                else     console.log(data);           // successful response
-                res.end(JSON.stringify({"data":data}));
+                if (err){ 
+                		console.log(err, err.stack); // an error occurred}
+                		res.end(JSON.stringify({"success": false,"data":[]}));
+                	}
+                else
+                {     
+                		console.log(data);           // successful response
+                		res.end(JSON.stringify({"success": true,"data":data}));
+            	}
             });
 
 });
 
+
+app.get('/azureCognitiveService',function(req,res){
+
+	const headers = {
+                'Content-type': 'application/json'
+            };
+
+    const body = {
+                "documents": [
+                    {
+                        "language": language,
+                        "id": 1,
+                        "text": req.query.text
+                    }
+                ]
+            };
+
+    
+	textAnalitics.keyPhrases({headers,body})
+		.then((response) => {
+			res.end(JSON.stringify({"success":true,"data": response}));
+            })
+		.catch((err) => {
+			console.log(err);
+			res.end(JSON.stringify({"success":false,"data": []}));
+            }); 
+
+	/*
+	textAnalitics.sentiment({headers,body})
+		.then((response) => {
+			res.end(JSON.stringify({"success":true,"data": response}));
+       		})
+		.catch((err) => {
+            console.log(err);
+            res.end(JSON.stringify({"success":false,"data": []}));
+            });
+	*/
+
+});
 
 
 var server = app.listen(8081, function ()
@@ -84,6 +116,7 @@ var server = app.listen(8081, function ()
     var port = server.address().port;
     console.log("Esta corriendo en %s:%s", host, port);   
 });
+
 
 
 
