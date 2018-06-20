@@ -6,7 +6,14 @@ import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { MainComponent } from './main/main.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { MatButtonModule, MatInputModule, MatCardModule, MatCheckboxModule, MatTableModule } from '@angular/material';
+import {
+  MatButtonModule,
+  MatInputModule,
+  MatCardModule,
+  MatCheckboxModule,
+  MatTableModule,
+  MatGridListModule
+  } from '@angular/material';
 import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
@@ -26,7 +33,8 @@ import { HttpClientModule } from '@angular/common/http';
     MatInputModule,
     MatCardModule,
     MatCheckboxModule,
-    MatTableModule
+    MatTableModule,
+    MatGridListModule
   ],
   providers: [],
   bootstrap: [AppComponent]

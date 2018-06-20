@@ -1,37 +1,43 @@
 <body mat-app-background>
-  <mat-card style="width:25%; background-color:#b2ddff">
-    <mat-card-title>Texto a analizar:</mat-card-title>
-    <mat-card-content>
-      <mat-form-field style="width: 100%">
-        <textarea matInput rows="3" cols="250" [(ngModel)]="texto" placeholder="Coloque texto aquí para analizarlo">
-        </textarea>
-      </mat-form-field>
-      <button mat-raised-button color="primary" (click) = "checkText()"> Chequear</button>
-    </mat-card-content>
-  </mat-card>
-  <mat-card *ngFor="let stat of stats">
-    <mat-card-title>{{stat.name}}</mat-card-title>
-    <mat-card-content>
-      <mat-table #table [dataSource]="stat.keyScores">
+  <mat-grid-list cols="3" rowHeight="2:2">
+    <mat-grid-tile>
+      <mat-card style="background-color:#b2ddff">
+        <mat-card-title>Texto a analizar:</mat-card-title>
+        <mat-card-content>
+          <mat-form-field style="width: 100%">
+            <textarea matInput rows="3" cols="250" [(ngModel)]="texto" placeholder="Coloque texto aquí para analizarlo">
+            </textarea>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click) = "checkText()"> Chequear</button>
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile  *ngFor="let stat of stats">
+      <mat-card>
+        <mat-card-title>{{stat.name}}</mat-card-title>
+        <mat-card-content class="example-container mat-elevation-z8">
+          <mat-table #table [dataSource]="stat.keyScores">
 
-        <!--- Note that these columns can be defined in any order.
-              The actual rendered columns are set as a property on the row definition" -->
+            <!-- Name Column -->
+            <ng-container matColumnDef="sujeto">
+              <mat-header-cell *matHeaderCellDef> Sujeto </mat-header-cell>
+              <mat-cell *matCellDef="let element"> {{element.key}} </mat-cell>
+            </ng-container>
 
-        <!-- Name Column -->
-        <ng-container matColumnDef="sujeto">
-          <mat-header-cell *matHeaderCellDef> Sujeto </mat-header-cell>
-          <mat-cell *matCellDef="let element"> {{element.key}} </mat-cell>
-        </ng-container>
+            <!-- Weight Column -->
+            <ng-container matColumnDef="puntuacion">
+              <mat-header-cell *matHeaderCellDef> Puntaje </mat-header-cell>
+              <mat-cell *matCellDef="let element"> {{element.value}} </mat-cell>
+            </ng-container>
 
-        <!-- Weight Column -->
-        <ng-container matColumnDef="puntuacion">
-          <mat-header-cell *matHeaderCellDef> Puntaje </mat-header-cell>
-          <mat-cell *matCellDef="let element"> {{element.value}} </mat-cell>
-        </ng-container>
-
-        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-        <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
-      </mat-table>
-    </mat-card-content>
-  </mat-card>
+            <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+          </mat-table>
+        </mat-card-content>
+        <mat-card-footer>
+          <h2 style="margin:10px">Puntaje total: {{stat.score}}</h2>
+        </mat-card-footer>
+      </mat-card>
+    </mat-grid-tile>
+  </mat-grid-list>
 </body>
