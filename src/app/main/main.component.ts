@@ -12,16 +12,21 @@ interface NLPRES {
   styleUrls: ['./main.component.css']
 })
 export class MainComponent implements OnInit {
-  private texto = 'Set the environment variable GOOGLE_APPLICATION_CREDENTIALS to the file path of the JSON file that contains your service account key. This variable only applies to your current shell session, so if you open a new session, set the variable again.';
+  private texto = 'Google, headquartered in Mountain View, unveiled the new Android phone at the Consumer Electronic Show.  Sundar Pichai said in his keynote that users love their new Android phones.';
   private server = 'http://localhost:8081/';
   private procs = [];
+  private questions = false;
   private endpoints = [
     {route: 'IBMWatson', name: 'Watson[IBM]', color: '#051b75'},
     {route: 'googleLanguage', name: 'Google', color: '#558ff1'},
     {route: 'amazonComprehend', name: 'Amazon', color: '#1b2532'},
-    {route: 'azureCognitiveService', name: 'Azure', color: '#a5ce00'}
+    {route: 'azureCognitiveService', name: 'Azure', color: '#a5ce00'},
+    {route: 'aylienTextApi', name: 'Aylien', color: '#28384e'}
   ];
-  displayedColumns = ['sujeto', 'puntuacion'];
+  private pregunta = '';
+  private respuesta = '';
+  private ruta = '';
+  displayedColumns = ['Entity', 'Score'];
   private stats = [];
   constructor(private http: HttpClient) { }
   count(list) {
@@ -33,6 +38,21 @@ export class MainComponent implements OnInit {
   }
   ngOnInit() {
   }
+  refine(keyScores){
+
+  }
+  alternateQuestions(){
+    this.questions = !this.questions;
+  }
+  responder(){
+    if(this.ruta!==''){
+      this.http.get(`${this.server}${this.ruta}`,
+        {params: {text: this.texto}}).
+        subscribe(res => {
+
+        });
+    }
+  }
   checkText() {
     console.log('Chequeando texto');
     this.stats = [];
@@ -41,7 +61,7 @@ export class MainComponent implements OnInit {
       this.http.get(`${this.server}${element.route}`,
         {params: {text: this.texto}}).
         subscribe(res => {
-          res['name'] = `${element.name} - ${this.count(res['keyScores'])} entidades encontradas`;
+          res['name'] = `${element.name} - ${res['keyScores'].length} entities found`;
           res['color'] = element['color'];
           this.stats.push(res);
           this.procs.pop();
