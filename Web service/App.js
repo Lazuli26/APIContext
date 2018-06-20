@@ -82,15 +82,16 @@ app.get('/IBMWatson', function(req,res){
   };
   function callback(error, response, body) {
       if (!error && response.statusCode == 200) {
-          console.log(body);
           var watsy = JSON.parse(body)
           var respuesta= {}
           respuesta["score"] = watsy.sentiment.document.score;
           respuesta["keyWords"] = [];
-          respuesta["keyScores"] = {};
+          respuesta["keyScores"] = [];
           for (let x=0;watsy.keywords[x]!=undefined;x++){
             respuesta.keyWords.push(watsy.keywords[x].text);
-            respuesta.keyScores[watsy.keywords[x].text] = watsy.keywords[x].sentiment.score;
+            respuesta.keyScores.push({
+              key: watsy.keywords[x].text,
+              value: watsy.keywords[x].sentiment.score});
           }
           res.send(JSON.stringify(respuesta));
       }
