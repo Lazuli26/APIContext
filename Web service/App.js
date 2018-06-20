@@ -32,8 +32,17 @@ const AzureNLP = new cognitiveServices.textAnalytics({
     endpoint: credentials.azure.azureEndpoint
 });
 
+/********************************************************
 
+AYLIENT TEXT ANALYSIS SERVICE
 
+*********************************************************/
+
+const AYLIENTextAPI = require('aylien_textapi');
+var textapi = new AYLIENTextAPI({
+  application_id: credentials.Aylien.appID,
+  application_key: credentials.Aylien.appKey
+});
 
 // Instancia de Google Natural Languaje Processing
  const GoogleNLP = new glanguage.LanguageServiceClient();
@@ -134,6 +143,44 @@ app.get('/azureCognitiveService',function(req,res){
 	*/
 
 });
+
+app.get('/aylienTextApi',function(req,res){
+
+    textapi.entities(req.query.text, function(err, resp) {
+    
+  		if (err !== null) {
+    		res.send(JSON.stringify({}));
+  			} 
+  		else 
+  		{
+  			
+  			//format response
+            var respuesta={};
+            respuesta["score"]=0;
+            respuesta["keyScores"]=[];
+            var limite=resp.entities.keyword.length;
+            var keyPhrases= resp.entities.keyword;
+                		
+
+            for (let i=0; i< limite;i++){
+            	respuesta.keyScores.push(
+                	{
+                		"key": keyPhrases[i],
+                		"value": 0 
+
+                	}
+                	);
+            }
+			
+            res.send(JSON.stringify(respuesta));
+    	}
+  		
+	});
+    
+
+});
+
+
 
 app.get('/googleLanguage',function(req,res){
   const document = {
