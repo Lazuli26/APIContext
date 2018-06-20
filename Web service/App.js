@@ -174,20 +174,6 @@ app.get('/azureCognitiveService',function(req,res){
 
 app.get('/aylienTextApi',function(req,res){
 
-	const headers = {
-                'Content-type': 'application/json'
-            };
-
-    const body = {
-                "documents": [
-                    {
-                        "language": language,
-                        "id": 1,
-                        "text": req.query.text
-                    }
-                ]
-            };
-
     textapi.entities(req.query.text, function(err, resp) {
     
   		if (err !== null) {
@@ -225,7 +211,6 @@ app.get('/aylienTextApi',function(req,res){
 
 
 app.get('/googleLanguage',function(req,res){
-	console.log("peticion entrante");
   const document = {
     content: req.query.text,
     type: 'PLAIN_TEXT',
@@ -233,12 +218,23 @@ app.get('/googleLanguage',function(req,res){
 
   // Detects the sentiment of the text
   GoogleNLP
-    .analyzeSentiment({document: document})
+    .analyzeEntitySentiment({document: document})
     .then(results => {
-      const sentiment = results[0].documentSentiment;
-      console.log(`Text: ${text}`);
-      console.log(`Sentiment score: ${sentiment.score}`);
-      console.log(`Sentiment magnitude: ${sentiment.magnitude}`);
+      const sentiment = results[0].entities;
+      var respuesta= {}
+      respuesta["score"] = 0;
+      respuesta["keyWords"] = [];
+      respuesta["keyScores"] = [];
+      for(let x = 0; sentiment[x]!=null; x++){
+        respuesta.keyScores.push({key: sentiment[x].name, value:sentiment[x].sentiment.score})
+      }
+      GoogleNLP
+        .analyzeSentiment({document: document})
+        .then(results => {
+          const sentiment = results[0].documentSentiment;
+          respuesta.score = sentiment.score;
+          res.send(respuesta)
+        })
     })
     .catch(err => {
       console.error('ERROR:', err);
