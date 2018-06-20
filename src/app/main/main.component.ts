@@ -1,25 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { API_KEYS } from './../../API_KEYS';
+import { HttpClient } from '@angular/common/http';
 
 // Las puntuaciones deben ir de -1 (negativo) a 1 (positiva), siendo 0 una puntuación neutral
 interface NLPRES {
   score: Number;
   keyWords: String[];
-  keyScores: {key: String, value: Number};
-}
-class NLP {
-  constructor() {
-  }
-  google(text) {
-    const keyScores = <{key: String, value: Number}> {};
-    const keyWords = <String[]> [];
-    const score = <Number> 0;
-    const document = {
-      content: text,
-      type: 'PLAIN_TEXT',
-    };
-    return <NLPRES> {score: score, keyWords: keyWords, keyScores: keyScores};
-  }
+  keyScores: [{key: String, value: Number}];
 }
 @Component({
   selector: 'app-main',
@@ -28,12 +14,21 @@ class NLP {
 })
 export class MainComponent implements OnInit {
   private texto = '';
-  private score = 0;
-  private keyWords = [];
-  private keyScores = [];
-  constructor() { }
+  displayedColumns = ['sujeto', 'puntuacion'];
+  private stats = [];
+  constructor(private http: HttpClient) { }
 
   ngOnInit() {
   }
-
+  checkText() {
+    console.log('Chequeando texto');
+    this.stats = [];
+    this.http.get('http://localhost:8081/IBMWatson',
+      {params: {text: this.texto}}).
+      subscribe(res => {
+        res['name'] = 'Watson';
+        this.stats.push(res);
+        console.log(res);
+      });
+  }
 }
