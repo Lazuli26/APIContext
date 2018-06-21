@@ -12,10 +12,9 @@ interface NLPRES {
   styleUrls: ['./main.component.css']
 })
 export class MainComponent implements OnInit {
-  private texto = 'Google, headquartered in Mountain View, unveiled the new Android phone at the Consumer Electronic Show.  Sundar Pichai said in his keynote that users love their new Android phones.';
+  private texto = '';
   private server = 'http://localhost:8081/';
   private procs = [];
-  private questions = false;
   private endpoints = [
     {route: 'IBMWatson', name: 'Watson[IBM]', color: '#051b75'},
     {route: 'googleLanguage', name: 'Google', color: '#558ff1'},
@@ -38,14 +37,11 @@ export class MainComponent implements OnInit {
   }
   ngOnInit() {
   }
-  refine(keyScores){
+  refine(keyScores) {
 
   }
-  alternateQuestions(){
-    this.questions = !this.questions;
-  }
-  responder(){
-    if(this.ruta!==''){
+  responder() {
+    if (this.ruta !== '') {
       this.http.get(`${this.server}${this.ruta}`,
         {params: {text: this.texto}}).
         subscribe(res => {
@@ -55,6 +51,7 @@ export class MainComponent implements OnInit {
   }
   checkText() {
     console.log('Chequeando texto');
+    this.procs = [];
     this.stats = [];
     this.endpoints.forEach(element => {
       this.procs.push(0);

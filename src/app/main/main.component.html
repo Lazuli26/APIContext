@@ -1,6 +1,6 @@
 <body mat-app-background>
   <mat-grid-list cols="3" rowHeight="300px" gutterSize="20px">
-    <mat-grid-tile *ngIf="!questions">
+    <mat-grid-tile>
       <mat-card style="background-color:#b2ddff">
         <mat-card-title>Text to analyze:</mat-card-title>
         <mat-card-content>
@@ -9,7 +9,7 @@
             </textarea>
           </mat-form-field>
           <div style="display:flex; flex-direction: row;">
-            <button mat-raised-button color="primary" (click) = "checkText()"> Analyze</button>
+            <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="procs.length==0"> Analyze</button>
             <mat-checkbox style="padding: 5px" (click)="alternateQuestions()">Question mode</mat-checkbox>
           </div>
           <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
@@ -18,7 +18,7 @@
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
-    <mat-grid-tile *ngIf="questions">
+    <mat-grid-tile>
       <mat-card style="background-color:#c7b2ff">
         <mat-card-title>Questions</mat-card-title>
         <mat-card-content>

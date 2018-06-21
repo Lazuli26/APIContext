@@ -144,7 +144,7 @@ app.get('/aylienTextApi',function(req,res){
             var respuesta={};
             respuesta.score=0;
             respuesta.keyScores=[];
-            var limite=resp.entities.keyword.length;
+            var limite=resp.entities.keyword!=null?resp.entities.keyword.length:0;
             var keyPhrases= resp.entities.keyword;
             for (let i=0; i< limite;i++){
             	respuesta.keyScores.push(
@@ -157,34 +157,165 @@ app.get('/aylienTextApi',function(req,res){
     	}
 	});
 });
+class TOKEN {
+    constructor(pos, modifies, text, lemma, label, partOfSpeech){
+        this.pos = pos;
+        this.modifies = modifies;
+        this.text = text;
+        this.label = label;
+        this.partOfSpeech = partOfSpeech;
+        this.lemma = lemma;
+        this.modifiers = [];
+    }
+    isPos(pos){
+        return this.pos==pos;
+    }
+    itModifies(pos){
+        return this.modifies==pos && this.pos!=pos;
+    }
+    text(){
+        return this.text;
+    }
+    partOfSpeech(filter){
+        if(!filter)
+            return this.partOfSpeech;
+        else
+            return this.partOfSpeech[filter];
+    }
+    isRoot(){
+        return this.label=='ROOT';
+    }
+    // addModifier(token){
+    //     if(token.itModifies(this.pos)){
+    //         this.modifiers.push(token);
+    //         return true;
+    //     }
+    //     else{
+    //         for(let x=0;this.modifiers[x]!=undefined;x++){
+    //             if(this.modifiers[x].addModifier(token))
+    //                 return true;
+    //         }
+    //         return false;
+    //     }
+    // }
+    genTree(tokenList){
+        for(let x = tokenList.length-1;x>=0;x--){
+            if(tokenList[x].itModifies(this.pos)){
+                let token = tokenList[x];
+                tokenList.splice(x,1);
+                this.modifiers.push(token);
+            }
+        }
+        this.modifiers.forEach(modifier => {
+            tokenList = modifier.genTree(tokenList);
+        });
+        return tokenList;
+    }
+    cleanUp(){
+        this.modifies= undefined;
+        this.modifiers.forEach(modifier => {
+            modifier.cleanUp();
+        });
+        if (this.modifiers.length==0)
+            this.modifiers=undefined;
+    }
+    print(tab){
+        console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
+        if(this.modifiers!=undefined)
+            this.modifiers.forEach(modifier =>{
+                modifier.print(tab+1);
+            });
+    }
+}
 
-app.get('/googleLanguage',function(req,res){
+class SENTENCE {
+    constructor(sentence, root){
+        this.sentence = sentence;
+        this.root = root;
+    }
+    print(){
+        console.log(this.sentence)
+        this.root.print(0);
+    }
+}
+class PARAGRAPH {
+    constructor(sentences, tokens){
+        this.tokens = [];
+        for(let x = 0; tokens[x]!=undefined;x++){
+            let token = tokens[x];
+            let partOfSpeech = {};
+            Object.keys(token.partOfSpeech).forEach(key => {
+                if (!token.partOfSpeech[key].includes('UNKNOWN'))
+                    partOfSpeech[key] = token.partOfSpeech[key];
+            });
+            this.tokens.push(
+                new TOKEN(
+                    x,
+                    token.dependencyEdge.headTokenIndex,
+                    token.text.content,
+                    token.lemma,
+                    token.dependencyEdge.label,
+                    partOfSpeech));
+        }
+        this.sentences = [];
+        this.rootList = [];
+        this.tokens.forEach(token =>{
+            if(token.isRoot()){
+                this.rootList.push(token);
+            }
+        });
+        this.rootList.forEach(root =>{
+            this.tokens = root.genTree(this.tokens);
+            root.cleanUp();
+            this.sentences.push(new SENTENCE(sentences[this.sentences.length].text.content,root));
+        });
+        this.sentences.forEach(sentence =>{
+            sentence.print();
+        });
+    }
+}
+app.get('/googleTree',function(req,res){
   const document = {
     content: req.query.text,
     type: 'PLAIN_TEXT',
   };
-  // Detects the sentiment of the text
-  GoogleNLP
-    .analyzeEntitySentiment({document: document})
+    GoogleNLP
+    .analyzeSyntax({document: document})
     .then(results => {
-      const sentiment = results[0].entities;
-      var respuesta= {};
-      respuesta.score = 0;
-      respuesta.keyScores = [];
-      for(let x = 0; sentiment[x]!=null; x++){
-        respuesta.keyScores.push({key: sentiment[x].name, value:sentiment[x].sentiment.score});
-      }
-      GoogleNLP
-        .analyzeSentiment({document: document})
-        .then(results => {
-          const sentiment = results[0].documentSentiment;
-          respuesta.score = sentiment.score;
-          res.send(respuesta);
-        });
+        res.send(new PARAGRAPH(results[0].sentences,results[0].tokens).sentences);
     })
     .catch(err => {
-      console.error('ERROR:', err);
-  });
+        console.log(err);
+        res.send(JSON.stringify(err));
+    });
+});
+app.get('/googleLanguage',function(req,res){
+    const document = {
+      content: req.query.text,
+      type: 'PLAIN_TEXT',
+    };
+    // Detects the sentiment of the text
+    GoogleNLP
+        .analyzeEntitySentiment({document: document})
+        .then(results => {
+            const sentiment = results[0].entities;
+            var respuesta= {};
+            respuesta.score = 0;
+            respuesta.keyScores = [];
+            for(let x = 0; sentiment[x]!=null; x++){
+            respuesta.keyScores.push({key: sentiment[x].name, value:sentiment[x].sentiment.score});
+            }
+            GoogleNLP
+            .analyzeSentiment({document: document})
+            .then(results => {
+                const sentiment = results[0].documentSentiment;
+                respuesta.score = sentiment.score;
+                res.send(respuesta);
+                });
+        })
+        .catch(err => {
+            console.error('ERROR:', err);
+    });
 });
 
 app.get('/IBMWatson', function(req,res){
@@ -222,6 +353,9 @@ app.get('/IBMWatson', function(req,res){
               value: watsy.keywords[x].sentiment.score});
           }
           res.send(JSON.stringify(respuesta));
+      }
+      else{
+          res.send(JSON.stringify({score:0, keyScores:[]}));
       }
   }
   request(options, callback);
