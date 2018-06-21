@@ -10,7 +10,7 @@ Getting data for AWS Comprehend configuration
 var language="en";
 
 var AWS = require('aws-sdk');
-// const glanguage = require('@google-cloud/language');
+
 var credentials = require('./API_KEYS').API_KEYS;
 
 
@@ -44,8 +44,14 @@ var textapi = new AYLIENTextAPI({
   application_key: credentials.Aylien.appKey
 });
 
+/**********************************************************
+
+GOOGLE CLOUD
+
+**********************************************************/
+const glanguage = require('@google-cloud/language');
 // Instancia de Google Natural Languaje Processing
-// const GoogleNLP = new glanguage.LanguageServiceClient();
+const GoogleNLP = new glanguage.LanguageServiceClient();
 
 app.use(function(req, res, next)
 
@@ -108,6 +114,7 @@ app.get('/azureCognitiveService',function(req,res){
                 'Content-type': 'application/json'
             };
 
+     
     const body = {
                 "documents": [
                     {
@@ -116,12 +123,21 @@ app.get('/azureCognitiveService',function(req,res){
                         "text": req.query.text
                     }
                 ]
-            };
+            }; 
 
-    
+   /* const body=	{
+  				"language" : language,
+  				"analyzerIds" : ["4fa79af1-f22c-408d-98bb-b7d7aeef7f04", 
+    								"22a6b758-420f-4745-8a3c-46835a67c0d2", 
+    								"08ea174b-bfdb-4e64-987e-602f85da7f72"],
+  				"text" : req.query.text 
+		};
+    */
 	AzureNLP.keyPhrases({headers,body})
 		.then((response) => {
 
+			res.send(JSON.stringify(response));
+				/*
 			//Format response
 			var respuesta={};
             respuesta["score"]=0;
@@ -152,7 +168,7 @@ app.get('/azureCognitiveService',function(req,res){
 
             res.send(JSON.stringify(respuesta));
 		
-
+            	*/
             })
 		.catch((err) => {
 			console.log(err);
@@ -207,8 +223,6 @@ app.get('/aylienTextApi',function(req,res){
     
 
 });
-
-
 
 app.get('/googleLanguage',function(req,res){
   const document = {
