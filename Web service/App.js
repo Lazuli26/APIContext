@@ -290,15 +290,20 @@ class sentenceChecker {
 
 	// special case for do and does when use n't do and does are auxiliar
 	checkForAux(token,tokenList,index){
-		
-		if (token.partOfSpeech.tag != interviewLanguage.auxiliar){
+		console.log("index "+ index);
+		console.log("text ** "+ token.text.content +"**");
+		if (token.dependencyEdge.label != interviewLanguage.auxiliar){
 
 			if (index < (tokenList.length-1) && tokenList[index+1].dependencyEdge.label != interviewLanguage.negation){
 				this.syntaxData.verbs+=1;
+				return;
 
 			}
 			
 		}
+
+		this.syntaxData.others++;
+		
 		
 	}
 
