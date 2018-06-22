@@ -14,3 +14,10 @@
   overflow: auto;
   max-height: 200px;
 }
+.button-small {
+  min-width: 1%;
+  min-height: 1%;
+  padding: 1%;
+  margin: 2px;
+  line-height: 100%;
+}

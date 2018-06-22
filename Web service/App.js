@@ -220,7 +220,7 @@ class TOKEN {
             this.modifiers=undefined;
     }
     print(tab){
-        console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
+        //console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
         if(this.modifiers!=undefined)
             this.modifiers.forEach(modifier =>{
                 modifier.print(tab+1);
@@ -234,7 +234,6 @@ class SENTENCE {
         this.root = root;
     }
     print(){
-        console.log(this.sentence)
         this.root.print(0);
     }
 }

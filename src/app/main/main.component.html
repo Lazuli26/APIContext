@@ -10,8 +10,7 @@
           </mat-form-field>
           <div style="display:flex; flex-direction: row;">
             <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="procs.length==0"> Analyze</button>
-            <mat-checkbox style="padding: 5px" (click)="alternateQuestions()">Question mode</mat-checkbox>
-          </div>
+            </div>
           <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
             <mat-spinner *ngFor="let proc of procs" [diameter]="20"></mat-spinner>
           </div>
@@ -20,22 +19,11 @@
     </mat-grid-tile>
     <mat-grid-tile>
       <mat-card style="background-color:#c7b2ff">
-        <mat-card-title>Questions</mat-card-title>
+        <mat-card-title>Analysis</mat-card-title>
         <mat-card-content>
-          <mat-form-field style="width: 100%">
-            <h3>{{pregunta}}</h3>
-            <textarea matInput rows="10" cols="250" [(ngModel)]="Respuesta" placeholder="Answer">
-            </textarea>
-          </mat-form-field>
-          <div style="display:flex; flex-direction: row;">
-            <button mat-raised-button color="primary" style="text-align: center" (click) = "responder()"> Answer </button>
-            <mat-select style="padding: 5px" [(value)]="ruta" placeholder="NLP Engine">
-              <mat-option *ngFor="let endpoint of endpoints" [value]="endpoint.route">
-                {{ endpoint.name }}
-              </mat-option>
-            </mat-select>
-            <mat-checkbox style="padding: 5px" (click)="alternateQuestions()">Analize mode</mat-checkbox>
-          </div>
+            <button mat-button *ngFor="let token of analysis" [ngStyle]="{
+              'background-color': token.background,
+              'color': token.contrast}" class="button-small">{{token.text}}</button>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
