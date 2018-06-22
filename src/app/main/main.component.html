@@ -20,11 +20,38 @@
     <mat-grid-tile>
       <mat-card style="background-color:#c7b2ff">
         <mat-card-title>Analysis</mat-card-title>
-        <mat-card-content>
-            <button mat-button *ngFor="let token of analysis" [ngStyle]="{
-              'background-color': token.background,
-              'color': token.contrast}" class="button-small">{{token.text}}</button>
+        <mat-card-content style="max-height:250px">
+          <div style="overflow: auto; max-height: 250px">
+              <button mat-button *ngFor="let token of analysis" matTooltip={{token.label}} [ngStyle]="{
+                'background-color': token.background,
+                'color': token.contrast}" class="button-small" (click)="showToken(token)">{{token.text}}</button>
+          </div>
         </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile *ngIf="token">
+      <mat-card [ngStyle]="{'background-color': token.background, color: token.contrast}">
+        <mat-card-title style="font-style: italic">"{{token.text}}" ~ {{token.label}}<span *ngIf="token.label!=='ROOT'" style="font-style: normal">
+            of [<button mat-button matTooltip={{analysis[token.parent].label}} [ngStyle]="{
+            'background-color': analysis[token.parent].background,
+            'color': analysis[token.parent].contrast}" class="button-tittle" (click)="showToken(analysis[token.parent])">
+            {{analysis[token.parent].text}}
+          </button>]</span>
+        </mat-card-title>
+        <mat-card-content>
+          <div>
+            <h4>Lemma: {{token.lemma}}</h4>
+            <div *ngFor="let part of token.keys">
+              {{part}}: {{token.partOfSpeech[part]}}
+            </div>
+          </div>
+          <span *ngIf="token.children">
+            <h4>Modifiers:</h4>
+            <button mat-button *ngFor="let child of token.children" matTooltip={{analysis[child].label}} [ngStyle]="{
+              'background-color': analysis[child].background,
+              'color': analysis[child].contrast}" class="button-small" (click)="showToken(analysis[child])">{{analysis[child].text}}</button>
+          </span>
+                  </mat-card-content>
       </mat-card>
     </mat-grid-tile>
     <mat-grid-tile  *ngFor="let stat of stats">

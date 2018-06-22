@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 // Las puntuaciones deben ir de -1 (negativo) a 1 (positiva), siendo 0 una puntuación neutral
 interface NLPRES {
   score: Number;
@@ -24,13 +23,11 @@ export class MainComponent implements OnInit {
     {route: 'azureCognitiveService', name: 'Azure', color: '#a5ce00'},
     {route: 'aylienTextApi', name: 'Aylien', color: '#28384e'}
   ];
-  private pregunta = '';
-  private respuesta = '';
   private ruta = '';
   displayedColumns = ['Entity', 'Score'];
-  private stats = [];
   private analysis = [];
-  constructor(private http: HttpClient, private sanitizer: DomSanitizer) { }
+  private token;
+  constructor(private http: HttpClient) { }
   count(list) {
     let x = 0;
     while (list !== undefined && list[x] !== undefined) {
@@ -54,8 +51,8 @@ export class MainComponent implements OnInit {
   }
   checkText() {
     console.log('Chequeando texto');
+    this.token = undefined;
     this.procs = [];
-    this.stats = [];
     this.procs.push(0);
     this.http.get(`${this.server}${this.endpoints[1].route}`,
       {params: {text: this.texto}}).
@@ -65,7 +62,7 @@ export class MainComponent implements OnInit {
         (<Array<Object>>res).forEach(sentence => {
           this.flatten(sentence['root']).forEach(token => {
             paragraph[token['pos']] = token;
-            token['background'] = this.stringToColour(token['partOfSpeech'].tag);
+            token['background'] = this.stringToColour(token['label']);
             token['contrast'] = this.contrast(token['background']);
           });
         });
@@ -73,6 +70,11 @@ export class MainComponent implements OnInit {
         this.analysis = paragraph;
         console.log(JSON.stringify(this.analysis));
       });
+  }
+  showToken(token) {
+    console.log(token);
+    this.token = token;
+    this.token.keys = Object.keys(token.partOfSpeech);
   }
   stringToColour(str) {
     let hash = 0;
@@ -100,14 +102,24 @@ export class MainComponent implements OnInit {
 
     const cBrightness = ((hRed * 299) + (hGreen * 587) + (hBlue * 114)) / 1000;
     console.log(cBrightness);
-    if (cBrightness > threshold) {return '#000000';} else { return '#FFFFFF';}
+    if (cBrightness > threshold) {return '#000000'; } else { return '#FFFFFF'; }
     }
 
   flatten(root): Array<Object> {
     let response = [];
-    response.push({pos: root.pos, text: root.text, label: root.label, partOfSpeech: root.partOfSpeech, lemma: root.lemma});
+    response.push({
+      pos: root.pos,
+      text: root.text,
+      label: root.label,
+      partOfSpeech: root.partOfSpeech,
+      lemma: root.lemma,
+      parent: root.parent === undefined ? root.pos : root.parent});
     if (root['modifiers'] !== undefined) {
+      response[0]['children'] = [];
+      console.log(`${root.text} has children`);
       root['modifiers'].forEach(token => {
+        response[0].children.push(token.pos);
+        token['parent'] = root.pos;
         response = response.concat(this.flatten(token));
       });
     }
