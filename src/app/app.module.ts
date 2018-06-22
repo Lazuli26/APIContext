@@ -14,6 +14,8 @@ import {
   MatTableModule,
   MatGridListModule
   } from '@angular/material';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSelectModule} from '@angular/material/select';
 import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
@@ -34,7 +36,9 @@ import { HttpClientModule } from '@angular/common/http';
     MatCardModule,
     MatCheckboxModule,
     MatTableModule,
-    MatGridListModule
+    MatGridListModule,
+    MatProgressSpinnerModule,
+    MatSelectModule
   ],
   providers: [],
   bootstrap: [AppComponent]

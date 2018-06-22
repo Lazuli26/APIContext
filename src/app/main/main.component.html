@@ -1,32 +1,59 @@
 <body mat-app-background>
-  <mat-grid-list cols="3" rowHeight="2:2">
+  <mat-grid-list cols="3" rowHeight="300px" gutterSize="20px">
     <mat-grid-tile>
       <mat-card style="background-color:#b2ddff">
-        <mat-card-title>Texto a analizar:</mat-card-title>
+        <mat-card-title>Text to analyze:</mat-card-title>
         <mat-card-content>
           <mat-form-field style="width: 100%">
-            <textarea matInput rows="3" cols="250" [(ngModel)]="texto" placeholder="Coloque texto aquí para analizarlo">
+            <textarea matInput rows="10" cols="250" [(ngModel)]="texto" placeholder="Place text here to analyze">
             </textarea>
           </mat-form-field>
-          <button mat-raised-button color="primary" (click) = "checkText()"> Chequear</button>
+          <div style="display:flex; flex-direction: row;">
+            <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="procs.length==0"> Analyze</button>
+            <mat-checkbox style="padding: 5px" (click)="alternateQuestions()">Question mode</mat-checkbox>
+          </div>
+          <div style="display:flex; flex-direction: row; justify-content: center; align-items: center">
+            <mat-spinner *ngFor="let proc of procs" [diameter]="20"></mat-spinner>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile>
+      <mat-card style="background-color:#c7b2ff">
+        <mat-card-title>Questions</mat-card-title>
+        <mat-card-content>
+          <mat-form-field style="width: 100%">
+            <h3>{{pregunta}}</h3>
+            <textarea matInput rows="10" cols="250" [(ngModel)]="Respuesta" placeholder="Answer">
+            </textarea>
+          </mat-form-field>
+          <div style="display:flex; flex-direction: row;">
+            <button mat-raised-button color="primary" style="text-align: center" (click) = "responder()"> Answer </button>
+            <mat-select style="padding: 5px" [(value)]="ruta" placeholder="NLP Engine">
+              <mat-option *ngFor="let endpoint of endpoints" [value]="endpoint.route">
+                {{ endpoint.name }}
+              </mat-option>
+            </mat-select>
+            <mat-checkbox style="padding: 5px" (click)="alternateQuestions()">Analize mode</mat-checkbox>
+          </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
     <mat-grid-tile  *ngFor="let stat of stats">
-      <mat-card>
+      <mat-card [ngStyle]="{'background-color': stat.color}">
         <mat-card-title>{{stat.name}}</mat-card-title>
         <mat-card-content class="example-container mat-elevation-z8">
           <mat-table #table [dataSource]="stat.keyScores">
 
             <!-- Name Column -->
-            <ng-container matColumnDef="sujeto">
-              <mat-header-cell *matHeaderCellDef> Sujeto </mat-header-cell>
+            <ng-container matColumnDef="Entity">
+              <mat-header-cell *matHeaderCellDef> Entity </mat-header-cell>
               <mat-cell *matCellDef="let element"> {{element.key}} </mat-cell>
             </ng-container>
 
             <!-- Weight Column -->
-            <ng-container matColumnDef="puntuacion">
-              <mat-header-cell *matHeaderCellDef> Puntaje </mat-header-cell>
+            <ng-container matColumnDef="Score">
+              <mat-header-cell *matHeaderCellDef> Score </mat-header-cell>
               <mat-cell *matCellDef="let element"> {{element.value}} </mat-cell>
             </ng-container>
 
@@ -35,7 +62,7 @@
           </mat-table>
         </mat-card-content>
         <mat-card-footer>
-          <h2 style="margin:10px">Puntaje total: {{stat.score}}</h2>
+          <!-- <h2 style="margin:10px">Puntaje total: {{stat.score}}</h2> -->
         </mat-card-footer>
       </mat-card>
     </mat-grid-tile>

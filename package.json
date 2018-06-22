@@ -25,12 +25,16 @@
     "@angular/router": "^5.2.0",
     "@google-cloud/language": "^1.2.0",
     "aws-sdk": "^2.259.1",
+    "aylien_textapi": "^0.7.0",
+    "cognitive-services": "^1.1.0",
     "core-js": "^2.4.1",
     "express": "^4.16.3",
     "hammerjs": "^2.0.8",
     "http": "0.0.0",
+    "promise-retry": "^1.1.1",
     "request": "^2.87.0",
     "rxjs": "^5.5.6",
+    "sleep-promise": "^8.0.1",
     "zone.js": "^0.8.19"
   },
   "devDependencies": {
