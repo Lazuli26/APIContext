@@ -8,5 +8,6 @@ module.exports.DATA = {
 	auxiliar: "AUX",
 	adv: "ADV",
 	adp: "ADP",
-	prt: "PRT"
+	prt: "PRT",
+	prtText: "'s"
 }

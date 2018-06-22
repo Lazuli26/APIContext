@@ -316,7 +316,7 @@ class sentenceChecker {
 
 	updateValues(tokenList,index){
 
-		if (tokenList[index].partOfSpeech.tag=== interviewLanguage.prt || tokenList[index].partOfSpeech.tag ){
+		if (tokenList[index].partOfSpeech.tag=== interviewLanguage.prt || tokenList[index].text.content=== interviewLanguage.prtText ){
 			this.checkForPrt(tokenList,index);
 		}
 
