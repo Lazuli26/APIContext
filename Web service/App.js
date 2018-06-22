@@ -441,8 +441,8 @@ app.get('/googleTree',function(req,res){
     GoogleNLP
     .analyzeSyntax({document: document})
     .then(results => {
-    	res.send(JSON.stringify(results))
-        //res.send(new PARAGRAPH(results[0].sentences,results[0].tokens).sentences);
+    	//res.send(JSON.stringify(results))
+        res.send(new PARAGRAPH(results[0].sentences,results[0].tokens).sentences);
     })
     .catch(err => {
         console.log(err);
