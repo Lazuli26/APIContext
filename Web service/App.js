@@ -162,8 +162,8 @@ app.get('/aylienTextApi',function(req,res){
     textapi.entities(req.query.text, function(err, resp) {
   		if (err !== null) {
     		res.send(JSON.stringify({}));
-  			} 
-  		else 
+  			}
+  		else
   		{
   			//format response
             var respuesta={};
@@ -249,7 +249,7 @@ class TOKEN {
             this.modifiers=undefined;
     }
     print(tab){
-        console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
+        //console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
         if(this.modifiers!=undefined)
             this.modifiers.forEach(modifier =>{
                 modifier.print(tab+1);
@@ -264,7 +264,6 @@ class SENTENCE {
         this.valid=valid;
     }
     print(){
-        console.log(this.sentence)
         this.root.print(0);
     }
 
@@ -458,10 +457,12 @@ app.get('/googleLanguage',function(req,res){
       type: 'PLAIN_TEXT',
     };
     // Detects the sentiment of the text
+    console.log(GoogleNLP);
     GoogleNLP
-        .analyzeEntitySentiment({document: document})
+        .analyzeEntities({document: document})
         .then(results => {
             const sentiment = results[0].entities;
+            res.send(results[0])
             var respuesta= {};
             respuesta.score = 0;
             respuesta.keyScores = [];
