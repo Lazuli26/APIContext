@@ -55,7 +55,7 @@ export class MainComponent implements OnInit {
     this.procs = [];
     this.procs.push(0);
     this.texto = this.capKeyWords(this.texto);
-    this.http.get(`${this.server}${this.endpoints[1].route}`,
+    this.http.get(`${this.server}googleTree`,
       {params: {text: this.texto}}).
       subscribe(res => {
         for (let c = 0; c < (<Array<Object>>res).length; c++) {
@@ -126,7 +126,8 @@ export class MainComponent implements OnInit {
       partOfSpeech: root.partOfSpeech,
       lemma: root.lemma,
       parent: root.parent === undefined ? root.pos : root.parent,
-      sentence: sentence});
+      sentence: sentence,
+      entity: root.entity});
     if (root['modifiers'] !== undefined) {
       response[0]['children'] = [];
       console.log(`${root.text} has children`);

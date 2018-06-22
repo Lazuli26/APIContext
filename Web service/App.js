@@ -158,7 +158,7 @@ app.get('/aylienTextApi',function(req,res){
 	});
 });
 class TOKEN {
-    constructor(pos, modifies, text, lemma, label, partOfSpeech){
+    constructor(pos, modifies, text, lemma, label, partOfSpeech, entity){
         this.pos = pos;
         this.modifies = modifies;
         this.text = text;
@@ -166,6 +166,7 @@ class TOKEN {
         this.partOfSpeech = partOfSpeech;
         this.lemma = lemma;
         this.modifiers = [];
+        this.entity = entity;
     }
     isPos(pos){
         return this.pos==pos;
@@ -238,8 +239,35 @@ class SENTENCE {
     }
 }
 class PARAGRAPH {
-    constructor(sentences, tokens){
+    constructor(sentences, tokens, entities){
         this.tokens = [];
+        Object.keys(entities).forEach(key =>{
+          var entity = entities[key];
+          for(let x = 0; x< entity.mentions.length; x++){
+            let c = 0;
+            console.log(entity.mentions[0])
+            for(let y = 0; y < tokens.length && c < entity.mentions.length;y++){
+              if (tokens[y].text.content == entity.name){
+                c++;
+                tokens[y].entity = {};
+                tokens[y].entity.mention = {
+                  text: entity.mentions[x].text.content,
+                  type: entity.mentions[x].type,
+                  magnitude: entity.mentions[x].sentiment.magnitude,
+                  score: entity.mentions[x].sentiment.score
+                }
+                tokens[y].entity.type = entity.type;
+                tokens[y].entity.magnitude = entity.magnitude;
+                tokens[y].entity.score = entity.score;
+                tokens[y].entity.salience = entity.salience;
+                tokens[y].entity.metadata = entity.metadata;
+                tokens[y].entity.name = entity.name;
+                tokens[y].entity.sentiment = entity.sentiment;
+              }
+            }
+          }
+        })
+        console.log('Entidades generadas')
         for(let x = 0; tokens[x]!=undefined;x++){
             let token = tokens[x];
             let partOfSpeech = {};
@@ -254,7 +282,8 @@ class PARAGRAPH {
                     token.text.content,
                     token.lemma,
                     token.dependencyEdge.label,
-                    partOfSpeech));
+                    partOfSpeech,
+                    token.entity));
         }
         this.sentences = [];
         this.rootList = [];
@@ -280,39 +309,52 @@ app.get('/googleTree',function(req,res){
   };
     GoogleNLP
     .analyzeSyntax({document: document})
-    .then(results => {
-        res.send(new PARAGRAPH(results[0].sentences,results[0].tokens).sentences);
+    .then(syntax => {
+      GoogleNLP
+      .analyzeEntitySentiment({document: document})
+        .then(results => {
+          var entities= {};
+          results[0].entities.forEach(entity => {
+            entities[entity.name] = {
+              type: entity.type,
+              sentiment: entity.sentiment,
+              salience: entity.salience,
+              metadata: entity.metadata,
+              mentions: entity.mentions,
+              name: entity.name
+            }
+          });
+          res.send(new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, entities).sentences);
+        });
     })
     .catch(err => {
         console.log(err);
         res.send(JSON.stringify(err));
     });
 });
-app.get('/googleLanguage',function(req,res){
+app.get('/googleEntities',function(req,res){
     const document = {
       content: req.query.text,
       type: 'PLAIN_TEXT',
     };
     // Detects the sentiment of the text
-    console.log(GoogleNLP);
     GoogleNLP
-        .analyzeEntities({document: document})
+        .analyzeEntitySentiment({document: document})
         .then(results => {
-            const sentiment = results[0].entities;
-            res.send(results[0])
+            const entities = results[0].entities;
+            console.log(JSON.stringify(entities))
             var respuesta= {};
-            respuesta.score = 0;
-            respuesta.keyScores = [];
-            for(let x = 0; sentiment[x]!=null; x++){
-            respuesta.keyScores.push({key: sentiment[x].name, value:sentiment[x].sentiment.score});
-            }
-            GoogleNLP
-            .analyzeSentiment({document: document})
-            .then(results => {
-                const sentiment = results[0].documentSentiment;
-                respuesta.score = sentiment.score;
-                res.send(respuesta);
-                });
+            entities.forEach(entity => {
+              respuesta[entity.name] = {
+                type: entity.type,
+                sentiment: entity.sentiment,
+                salience: entity.salience,
+                metadata: entity.metadata,
+                mentions: entity.mentions,
+                name: entity.name
+              }
+            })
+            res.send(respuesta);
         })
         .catch(err => {
             console.error('ERROR:', err);

@@ -40,7 +40,7 @@
                 'color': (token==undefined || toke.pos!=token.pos)?toke.contrast:'#c6c6c6'}"
               class="button-small"
               (click)="showToken(toke)"
-                >{{toke.text}}</button>
+                >{{toke.text}}<mat-icon *ngIf="toke.entity" style="font-size: 8px; width: 18px; height:8px">brightness_1</mat-icon></button>
             </span>
           </div>
         </mat-card-content>
@@ -62,7 +62,7 @@
             {{analysis[token.parent].text}}
           </button>]</span>
         </mat-card-title>
-        <mat-card-content>
+        <mat-card-content style="height: 80%; overflow: auto">
           <div>
             <h4>Lemma: {{token.lemma}}</h4>
             <div *ngFor="let part of token.keys">
@@ -75,7 +75,25 @@
               'background-color': analysis[child].background,
               'color': analysis[child].contrast}" class="button-small" (click)="showToken(analysis[child])">{{analysis[child].text}}</button>
           </span>
-                  </mat-card-content>
+          <mat-card *ngIf="token.entity" style="width: 80%;height:fit-content">
+            <span [ngStyle]="{'float': 'right',
+              'margin': '0px',
+              'padding': '5px',
+              'background-color': stringToColour(token.entity.type),
+              'color': contrast(stringToColour(token.entity.type))}">{{token.entity.type}}</span>
+            <mat-card-title>
+              {{token.entity.name}}
+            </mat-card-title>
+            <mat-card-content>
+              <div>Sentiment: {{token.entity.sentiment.score}}</div>
+              <div>Magnitude: {{token.entity.sentiment.magnitude}}</div>
+              <div>Salience: {{token.entity.salience}}</div>
+              <div *ngIf="token.entity.metadata.wikipedia_url">
+                <a href={{token.entity.metadata.wikipedia_url}}>Wikipedia</a>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </mat-card-content>
       </mat-card>
     </mat-grid-tile>
     <mat-grid-tile *ngIf="label">
