@@ -17,21 +17,45 @@
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
-    <mat-grid-tile>
+    <mat-grid-tile *ngIf="analysis.length!=0">
       <mat-card style="background-color:#c7b2ff">
-        <mat-card-title>Analysis</mat-card-title>
+        <mat-card-title>Analysis
+          <mat-form-field style="font-size:12px">
+            <mat-select placeholder="Sentence" (click)= "token = undefined" [(value)]="sentence">
+              <mat-option *ngFor="let sentence of tree" value = {{sentence.pos}}>
+                {{sentence.pos}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </mat-card-title>
         <mat-card-content style="max-height:250px">
           <div style="overflow: auto; max-height: 250px">
-              <button mat-button *ngFor="let token of analysis" matTooltip={{token.label}} [ngStyle]="{
-                'background-color': token.background,
-                'color': token.contrast}" class="button-small" (click)="showToken(token)">{{token.text}}</button>
+            <span *ngFor="let toke of analysis">
+              <button
+              mat-button
+              *ngIf="(sentence == undefined || toke.sentence==sentence)"
+              matTooltip={{toke.label}}
+              [ngStyle]="{
+                'background-color': (token==undefined || toke.pos!=token.pos)?toke.background:'#7a7a7a',
+                'color': (token==undefined || toke.pos!=token.pos)?toke.contrast:'#c6c6c6'}"
+              class="button-small"
+              (click)="showToken(toke)"
+                >{{toke.text}}</button>
+            </span>
           </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
     <mat-grid-tile *ngIf="token">
       <mat-card [ngStyle]="{'background-color': token.background, color: token.contrast}">
-        <mat-card-title style="font-style: italic">"{{token.text}}" ~ {{token.label}}<span *ngIf="token.label!=='ROOT'" style="font-style: normal">
+        <mat-card-title style="font-style: italic">"{{token.text}}" ~
+          <button mat-button class="button-tittle"
+          [ngStyle]="{
+            'background-color':token.contrast,
+            'color':token.background
+          }"
+          (click)="label = token.label">{{token.label}}</button>
+          <span *ngIf="token.label!=='ROOT'" style="font-style: normal">
             of [<button mat-button matTooltip={{analysis[token.parent].label}} [ngStyle]="{
             'background-color': analysis[token.parent].background,
             'color': analysis[token.parent].contrast}" class="button-tittle" (click)="showToken(analysis[token.parent])">
@@ -52,6 +76,14 @@
               'color': analysis[child].contrast}" class="button-small" (click)="showToken(analysis[child])">{{analysis[child].text}}</button>
           </span>
                   </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile *ngIf="label">
+      <mat-card [ngStyle]="{'background-color': token.contrast, color: token.background}">
+        <mat-card-title style="font-style: italic">"{{label}}</mat-card-title>
+        <mat-card-content>
+          <pre>{{labels[label]}}</pre>
+        </mat-card-content>
       </mat-card>
     </mat-grid-tile>
     <mat-grid-tile  *ngFor="let stat of stats">
