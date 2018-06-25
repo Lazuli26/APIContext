@@ -11,3 +11,4 @@ module.exports.DATA = {
 	prt: "PRT",
 	prtText: "'s"
 }
+
