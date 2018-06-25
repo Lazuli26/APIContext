@@ -10,6 +10,7 @@ const AYLIENTextAPI = require('aylien_textapi');
 const credentials = require('./API_KEYS').API_KEYS;
 const request = require('request');
 
+
 /**************************
 	For read or write files
 ***************************/
@@ -19,6 +20,7 @@ var synonyms;
 
 
 const interviewLanguage= require('./LanguageData/English_SyntaxData').DATA; 
+
 
 /************************************************
 Getting data for AWS Comprehend configuration
@@ -144,14 +146,14 @@ app.get('/azureCognitiveService',function(req,res){
                     }
                 ]
 
-            }; 
+            };
 
    /* const body=	{
   				"language" : language,
-  				"analyzerIds" : ["4fa79af1-f22c-408d-98bb-b7d7aeef7f04", 
-    								"22a6b758-420f-4745-8a3c-46835a67c0d2", 
+  				"analyzerIds" : ["4fa79af1-f22c-408d-98bb-b7d7aeef7f04",
+    								"22a6b758-420f-4745-8a3c-46835a67c0d2",
     								"08ea174b-bfdb-4e64-987e-602f85da7f72"],
-  				"text" : req.query.text 
+  				"text" : req.query.text
 		};
     */
 
@@ -159,7 +161,7 @@ app.get('/azureCognitiveService',function(req,res){
 		.then((response) => {
 
 			res.send(JSON.stringify(response));
-			 
+
 			//Format response
 			var respuesta={};
             respuesta.score=0;
@@ -217,7 +219,7 @@ app.get('/aylienTextApi',function(req,res){
 
 
 class TOKEN {
-    constructor(pos, modifies, text, lemma, label, partOfSpeech){
+    constructor(pos, modifies, text, lemma, label, partOfSpeech, entity){
         this.pos = pos;
         this.modifies = modifies;
         this.text = text;
@@ -225,6 +227,7 @@ class TOKEN {
         this.partOfSpeech = partOfSpeech;
         this.lemma = lemma;
         this.modifiers = [];
+        this.entity = entity;
     }
     isPos(pos){
         return this.pos==pos;
@@ -299,7 +302,7 @@ class SENTENCE {
         this.root.print(0);
     }
 
-    
+
 }
 
 class sentenceChecker {
@@ -330,12 +333,12 @@ class sentenceChecker {
 				return;
 
 			}
-			
+
 		}
 
 		this.syntaxData.others++;
-		
-		
+
+
 	}
 
 	// special case for 's use. It has to be used with nouns or pron
@@ -438,7 +441,7 @@ class AnswerChecker {
 		this.totalPoints=this.keyWords.length;
 		this.validSentence=0;
 		this.synonymsList= question.getAllRelatedWords();
-		this.listManager = new listManager();
+		console.log("****************** Obtener puntos ************************+");
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
 		this.correctFactor=0.70;
 
@@ -465,6 +468,7 @@ class AnswerChecker {
 	compareWithSynonyms(word){
 		var limit= this.synonymsList.length;
 		word= this.textFormating(word);
+
 		for(let i=0; i < limit; i++){
 
 			if (this.fullSynonymsComparison (this.synonymsList[i].list,word)) { //if the word is in the synonyms list at position i
@@ -522,17 +526,24 @@ class AnswerChecker {
 
 	analyzeSentence(synonymsList,answer){
 		var score=0;
+		console.log("datos de respuesta....");
+		console.log(answer.getData());
+
 		var data= answer.getData();
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
+			console.log("Analizando oracion.....");
 			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format 
 				score += this.analyzeTokens(data[i].root);
 			}
 			if (i+1=== limit){
 
 				return score;
+
 			}
 		}
+
+
 		
 	}
 
@@ -557,7 +568,7 @@ class Answer{
 
 	
 	/******************************************************
-	Data: set of sentences, per sentence have a list of tokens
+	Data: set of sentences, per sentence have a list of tokens and a valid propety 0= valid, 1= invalid
 	*******************************************************/
 	constructor(questionIdentification, identification,data){
 
@@ -574,10 +585,11 @@ class Answer{
 
 class Question{
 
-	constructor (identification, topic, text,keyWords,synonymsData){
+	constructor (identification, topic, level ,text,keyWords,synonymsData){
 		this.identification= identification;
 		this.topic= topic;
 		this.text= text;
+		this.level= level;
 		this.keyWords= keyWords;
 		this.listManager = new listManager();
 		this.allRelatedWords= this.getSynonymsList(keyWords,synonymsData);
@@ -605,8 +617,7 @@ class Question{
 		var synonymsList=[];
 		var limit= keyWords.length;
 		for (let i=0; i < limit; i++){
-			//append synonym list for list 
-			//si dos palabras clave son SINONIMOS, HABRÍA QUE IR A VALIDARLO.
+			//append to the synonyms list the synonyms
 			if (this.searchInSynonymsList(synonymsList,keyWords[i].text)=== false ){
 				synonymsList.push(this.getSynonimsForKey(keyWords[i],synonymsData));
 			}
@@ -633,15 +644,41 @@ class Question{
 }
 
 class PARAGRAPH {
-
-    constructor(sentences, tokens){
+    constructor(sentences, tokens, entities){
     	this.sentencesValidation=[]; //have values for represent sentences valid state -1= válido, 0= válido
-
         this.tokens = [];
+
+        Object.keys(entities).forEach(key =>{
+          var entity = entities[key];
+          for(let x = 0; x< entity.mentions.length; x++){
+            let c = 0;
+            console.log(entity.mentions[0])
+            for(let y = 0; y < tokens.length && c < entity.mentions.length;y++){
+              if (tokens[y].text.content == entity.name){
+                c++;
+                tokens[y].entity = {};
+                tokens[y].entity.mention = {
+                  text: entity.mentions[x].text.content,
+                  type: entity.mentions[x].type,
+                  magnitude: entity.mentions[x].sentiment.magnitude,
+                  score: entity.mentions[x].sentiment.score
+                }
+                tokens[y].entity.type = entity.type;
+                tokens[y].entity.magnitude = entity.magnitude;
+                tokens[y].entity.score = entity.score;
+                tokens[y].entity.salience = entity.salience;
+                tokens[y].entity.metadata = entity.metadata;
+                tokens[y].entity.name = entity.name;
+                tokens[y].entity.sentiment = entity.sentiment;
+              }
+            }
+          }
+        })
+
         var j=0;
 
         this.sentence= new sentenceChecker(sentences[j]);
-        for(let x = 0; tokens[x]!=undefined;x++) {
+        for(let x = 0; tokens[x]!=undefined;x++){
             let token = tokens[x];
             let partOfSpeech = {};
             Object.keys(token.partOfSpeech).forEach(key => {
@@ -657,19 +694,18 @@ class PARAGRAPH {
                     token.text.content,
                     token.lemma,
                     token.dependencyEdge.label,
-                    partOfSpeech));
-
+                    partOfSpeech,
+                    token.entity));
             this.sentence.updateValues(tokens,x);
-
             console.log(JSON.stringify(this.sentence));
             console.log(token.text.content);
-            //detect new sentence beginning
             if (token.text.content[0]==='.'){
             	j++;
             	this.sentencesValidation.push(this.sentence.isValid());
             	if ( j < sentences.length){
             		
             		this.sentence= new sentenceChecker(sentences[j]);
+
             	}
 
             }
@@ -696,59 +732,83 @@ class PARAGRAPH {
         });
     }
 }
+
+
 app.get('/googleTree',function(req,res){
 	console.log("petición escuhada");
 	const document = {
     content: req.query.text,
-    "language": "EN",
     type: 'PLAIN_TEXT',
   };
     GoogleNLP
     .analyzeSyntax({document: document})
-    .then(results => {
+
+    .then(syntax => {
     	//res.send(JSON.stringify(results))
-    	question= new Question(1,"Object programing", "What is an object?",
+    	question= new Question(1,"Object programing", 0 ,"What is an object?",
 
 		[ {"text":"Representation","synonymsIndex": "0"},{"text":"Reproduction","synonymsIndex": "0"},{"text":"Functions","synonymsIndex": "1"}],synonyms);
-		var paragraph = new PARAGRAPH(results[0].sentences,results[0].tokens).sentences;
-		var answer= new Answer(1,1,paragraph);
-		var answerChecker= new AnswerChecker(question,answer, interviewLanguage);
-		res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
+		
+       GoogleNLP
+      .analyzeEntitySentiment({document: document})
+        .then(results => {
+          var entities= {};
+          results[0].entities.forEach(entity => {
+            entities[entity.name] = {
+              type: entity.type,
+              sentiment: entity.sentiment,
+              salience: entity.salience,
+              metadata: entity.metadata,
+              mentions: entity.mentions,
+              name: entity.name
+            }
+          });
+
+	    	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, entities).sentences;
+			var answer= new Answer(1,1,paragraph);
+			var answerChecker= new AnswerChecker(question,answer, interviewLanguage);
+
+			console.log(answerChecker);
+          	res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
+				"isCorrectAnswer": answerChecker.isCorrectAnswer()} ,"treeData": paragraph}));
+        })
+        .catch(e =>{
+        	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, {}).sentences;
+			var answer= new Answer(1,1,paragraph);
+			var answerChecker= new AnswerChecker(question,answer, interviewLanguage);
+        	res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
 			"isCorrectAnswer": answerChecker.isCorrectAnswer()} ,"treeData": paragraph}));
-        //res.send(new PARAGRAPH(results[0].sentences,results[0].tokens).sentences);
+        });
     })
+
     .catch(err => {
         console.log(err);
         res.send(JSON.stringify(err));
     });
 });
-
-
-app.get('/googleLanguage',function(req,res){
+app.get('/googleEntities',function(req,res){
     const document = {
       content: req.query.text,
       type: 'PLAIN_TEXT',
     };
     // Detects the sentiment of the text
-    console.log(GoogleNLP);
     GoogleNLP
-        .analyzeEntities({document: document})
+        .analyzeEntitySentiment({document: document})
         .then(results => {
-            const sentiment = results[0].entities;
-            res.send(results[0])
+            const entities = results[0].entities;
+            console.log(JSON.stringify(entities))
             var respuesta= {};
-            respuesta.score = 0;
-            respuesta.keyScores = [];
-            for(let x = 0; sentiment[x]!=null; x++){
-            respuesta.keyScores.push({key: sentiment[x].name, value:sentiment[x].sentiment.score});
-            }
-            GoogleNLP
-            .analyzeSentiment({document: document})
-            .then(results => {
-                const sentiment = results[0].documentSentiment;
-                respuesta.score = sentiment.score;
-                res.send(respuesta);
-                });
+            entities.forEach(entity => {
+              respuesta[entity.name] = {
+                type: entity.type,
+                sentiment: entity.sentiment,
+                salience: entity.salience,
+                metadata: entity.metadata,
+                mentions: entity.mentions,
+                name: entity.name
+              }
+            })
+            res.send(respuesta);
         })
         .catch(err => {
             console.error('ERROR:', err);

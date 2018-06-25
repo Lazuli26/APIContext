@@ -27,6 +27,7 @@ export class MainComponent implements OnInit {
   private sentence;
   labels = labels;
   keyWords = keyWords;
+  JSON = JSON;
   constructor(private http: HttpClient) { }
   count(list) {
     let x = 0;
@@ -47,7 +48,7 @@ export class MainComponent implements OnInit {
     }
   }
   checkText() {
-    console.log('Chequeando texto');
+    this.label = undefined;
     this.tree = undefined;
     this.sentence = undefined;
     this.token = undefined;
@@ -55,7 +56,7 @@ export class MainComponent implements OnInit {
     this.procs = [];
     this.procs.push(0);
     this.texto = this.capKeyWords(this.texto);
-    this.http.get(`${this.server}${this.endpoints[1].route}`,
+    this.http.get(`${this.server}googleTree`,
       {params: {text: this.texto}}).
       subscribe(res => {
         for (let c = 0; c < (<Array<Object>>res).length; c++) {
@@ -69,7 +70,6 @@ export class MainComponent implements OnInit {
         }
         this.tree = res;
         this.procs.pop();
-        console.log(this.analysis);
       });
   }
   capKeyWords(texto: string): string {
@@ -112,13 +112,11 @@ export class MainComponent implements OnInit {
     function cutHex(h) {return (h.charAt(0) === '#') ? h.substring(1, 7) : h; }
 
     const cBrightness = ((hRed * 299) + (hGreen * 587) + (hBlue * 114)) / 1000;
-    console.log(cBrightness);
     if (cBrightness > threshold) {return '#000000'; } else { return '#FFFFFF'; }
     }
 
   flatten(root, sentence): Array<Object> {
     let response = [];
-    console.log(sentence);
     response.push({
       pos: root.pos,
       text: root.text,
@@ -126,10 +124,10 @@ export class MainComponent implements OnInit {
       partOfSpeech: root.partOfSpeech,
       lemma: root.lemma,
       parent: root.parent === undefined ? root.pos : root.parent,
-      sentence: sentence});
+      sentence: sentence,
+      entity: root.entity});
     if (root['modifiers'] !== undefined) {
       response[0]['children'] = [];
-      console.log(`${root.text} has children`);
       root['modifiers'].forEach(token => {
         response[0].children.push(token.pos);
         token['parent'] = root.pos;

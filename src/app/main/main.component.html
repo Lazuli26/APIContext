@@ -5,7 +5,7 @@
         <mat-card-title>Text to analyze:</mat-card-title>
         <mat-card-content>
           <mat-form-field style="width: 100%">
-            <textarea matInput rows="10" cols="250" [(ngModel)]="texto" placeholder="Place text here to analyze">
+            <textarea matInput rows="6" cols="250" [(ngModel)]="texto" placeholder="Place text here to analyze">
             </textarea>
           </mat-form-field>
           <div style="display:flex; flex-direction: row;">
@@ -20,16 +20,21 @@
     <mat-grid-tile *ngIf="analysis.length!=0">
       <mat-card style="background-color:#c7b2ff">
         <mat-card-title>Analysis
-          <mat-form-field style="font-size:12px">
+          <mat-form-field style="
+            font-size:12px;
+            display:flex;
+            justify-content:flex-end;
+            align-items:center;
+            width:fit-content">
             <mat-select placeholder="Sentence" (click)= "token = undefined" [(value)]="sentence">
               <mat-option *ngFor="let sentence of tree" value = {{sentence.pos}}>
-                {{sentence.pos}}
+                {{sentence.pos}} - {{sentence.sentence}}
               </mat-option>
             </mat-select>
           </mat-form-field>
         </mat-card-title>
         <mat-card-content style="max-height:250px">
-          <div style="overflow: auto; max-height: 250px">
+          <div>
             <span *ngFor="let toke of analysis">
               <button
               mat-button
@@ -40,7 +45,7 @@
                 'color': (token==undefined || toke.pos!=token.pos)?toke.contrast:'#c6c6c6'}"
               class="button-small"
               (click)="showToken(toke)"
-                >{{toke.text}}</button>
+                >{{toke.text}}<mat-icon *ngIf="toke.entity" style="font-size: 8px; width: 18px; height:8px">brightness_1</mat-icon></button>
             </span>
           </div>
         </mat-card-content>
@@ -62,7 +67,7 @@
             {{analysis[token.parent].text}}
           </button>]</span>
         </mat-card-title>
-        <mat-card-content>
+        <mat-card-content style="height: 80%; overflow: auto">
           <div>
             <h4>Lemma: {{token.lemma}}</h4>
             <div *ngFor="let part of token.keys">
@@ -75,7 +80,27 @@
               'background-color': analysis[child].background,
               'color': analysis[child].contrast}" class="button-small" (click)="showToken(analysis[child])">{{analysis[child].text}}</button>
           </span>
-                  </mat-card-content>
+          <mat-card *ngIf="token.entity" style="width: 80%;height:fit-content">
+            <span [ngStyle]="{'float': 'right',
+              'margin': '0px',
+              'padding': '5px',
+              'background-color': stringToColour(token.entity.type),
+              'color': contrast(stringToColour(token.entity.type))}">{{token.entity.type}}</span>
+            <mat-card-title>
+              {{token.entity.name}}
+            </mat-card-title>
+            <mat-card-content>
+              <div style="color: #2b770d">
+                <span>Sentiment: </span>
+                Score {{JSON.stringify(token.entity.sentiment.score).substr(0, 4)}} Magnitude {{JSON.stringify(token.entity.sentiment.magnitude).substr(0, 4)}}
+              </div>
+              <div>Salience: {{token.entity.salience}}</div>
+            </mat-card-content>
+            <mat-card-footer *ngIf="token.entity.metadata.wikipedia_url" style="margin:1px">
+              <a href={{token.entity.metadata.wikipedia_url}}>Wikipedia</a>
+            </mat-card-footer>
+          </mat-card>
+        </mat-card-content>
       </mat-card>
     </mat-grid-tile>
     <mat-grid-tile *ngIf="label">
