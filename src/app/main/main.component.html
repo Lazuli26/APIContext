@@ -4,10 +4,21 @@
       <mat-card style="background-color:#b2ddff">
         <mat-card-title>Text to analyze:</mat-card-title>
         <mat-card-content>
-          <mat-form-field style="width: 100%">
-            <textarea matInput rows="6" cols="250" [(ngModel)]="texto" placeholder="Place text here to analyze">
-            </textarea>
-          </mat-form-field>
+          <div>
+            <mat-form-field *ngIf = "questionList.length>0">
+              <mat-select [(value)]="questionIndex" placeholder="Select Question">
+                <mat-option *ngFor="let question of questionList" value = {{question.QuestionID}}>
+                  {{question.QuestionText}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div>
+            <mat-form-field style="width: 100%">
+              <textarea matInput rows="6" cols="250" [(ngModel)]="texto" placeholder="Place text here to analyze">
+              </textarea>
+            </mat-form-field>
+          </div>
           <div style="display:flex; flex-direction: row;">
             <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="procs.length==0"> Analyze</button>
             </div>
@@ -44,8 +55,8 @@
                 'background-color': (token==undefined || toke.pos!=token.pos)?toke.background:'#7a7a7a',
                 'color': (token==undefined || toke.pos!=token.pos)?toke.contrast:'#c6c6c6'}"
               class="button-small"
-              (click)="showToken(toke)"
-                >{{toke.text}}<mat-icon *ngIf="toke.entity" style="font-size: 8px; width: 18px; height:8px">brightness_1</mat-icon></button>
+              (click)="showToken(toke)">
+              {{toke.text}}<mat-icon *ngIf="toke.entity" style="font-size: 8px; width: 18px; height:8px">brightness_1</mat-icon></button>
             </span>
           </div>
         </mat-card-content>
@@ -105,37 +116,92 @@
     </mat-grid-tile>
     <mat-grid-tile *ngIf="label">
       <mat-card [ngStyle]="{'background-color': token.contrast, color: token.background}">
-        <mat-card-title style="font-style: italic">"{{label}}</mat-card-title>
+        <mat-card-title style="font-style: italic">{{label}}</mat-card-title>
         <mat-card-content>
           <pre>{{labels[label]}}</pre>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
-    <mat-grid-tile  *ngFor="let stat of stats">
-      <mat-card [ngStyle]="{'background-color': stat.color}">
-        <mat-card-title>{{stat.name}}</mat-card-title>
-        <mat-card-content class="example-container mat-elevation-z8">
-          <mat-table #table [dataSource]="stat.keyScores">
-
-            <!-- Name Column -->
-            <ng-container matColumnDef="Entity">
-              <mat-header-cell *matHeaderCellDef> Entity </mat-header-cell>
-              <mat-cell *matCellDef="let element"> {{element.key}} </mat-cell>
-            </ng-container>
-
-            <!-- Weight Column -->
-            <ng-container matColumnDef="Score">
-              <mat-header-cell *matHeaderCellDef> Score </mat-header-cell>
-              <mat-cell *matCellDef="let element"> {{element.value}} </mat-cell>
-            </ng-container>
-
-            <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
-          </mat-table>
+    <mat-grid-tile>
+      <mat-card>
+        <mat-card-title>Generate Question</mat-card-title>
+        <mat-card-content class="container">
+          <div>
+            <mat-form-field style="width:100%">
+              <input matInput placeholder="Question" [(ngModel)]="questionGen.question">
+            </mat-form-field>
+          </div>
+          <div style="height:100%; width:100%; overflow: hidden;">
+            <div style="float: left; width:50%;">
+              <div>
+                <mat-form-field style="width: 70%">
+                  <mat-select [(value)]="questionGen.answerIndex" placeholder="Answers">
+                    <mat-option *ngFor="let answer of Object.keys(questionGen.answers)" value = {{answer}}>
+                      {{answer}}: {{questionGen.answers[answer]}}
+                    </mat-option>
+                    <mat-option (click) = "
+                    questionGen.answers.push('');
+                    questionGen.answerIndex=JSON.stringify(questionGen.answers.length-1)">Add Answer</mat-option>
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delQuestion()"
+                    *ngIf="questionGen.answerIndex" [value]="questionGen.answerIndex">Delete {{this.questionGen.answers[questionGen.answerIndex]}}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div>
+                <mat-form-field *ngIf="questionGen.answers[questionGen.answerIndex]!=undefined" style="width:90%">
+                  <textarea matInput
+                            rows="4"
+                            cols="400"
+                            [(ngModel)]="questionGen.answers[questionGen.answerIndex]"
+                            placeholder="Edit">
+                  </textarea>
+                </mat-form-field>
+              </div>
+            </div>
+            <div style="float: left; width:50%;">
+              <div>
+                <mat-form-field>
+                  <input matInput placeholder="Entity name" id="entityName">
+                </mat-form-field>
+                <button
+                  mat-button
+                  (click)="addEntity()">
+                  Add Entity</button>
+              </div>
+              <div>
+                <mat-form-field *ngIf="Object.keys(questionGen.keyWords).length!=0" style="width:20%">
+                  <mat-select [(value)]="questionGen.entityIndex" placeholder="Entity">
+                    <mat-option *ngFor="let entity of Object.keys(questionGen.keyWords)" [value]="entity">
+                      {{entity}}
+                    </mat-option>
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delEntity()"
+                    *ngIf="questionGen.keyWords[questionGen.entityIndex]!=undefined" [value]="questionGen.entityIndex">Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']]}}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field *ngIf="Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex]" style="width:20%">
+                  <mat-select [(value)]="questionGen.synonymsIndex" placeholder="Synonyms">
+                    <mat-option *ngFor="let synonym of Object.keys(questionGen.keyWords[questionGen.entityIndex])" [value]="synonym">
+                      {{synonym}}: {{questionGen.keyWords[questionGen.entityIndex][synonym]}}
+                    </mat-option>
+                    <mat-option (click) = "
+                    questionGen.keyWords[questionGen.entityIndex].push('');
+                    questionGen.synonymsIndex=JSON.stringify(questionGen.keyWords[questionGen.entityIndex].length-1)">Add synonym</mat-option>
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delSynonym()"
+                    *ngIf="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined" [value]="questionGen.synonymsIndex">
+                      Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']]}}:{{this.questionGen.keyWords[this.questionGen['entityIndex']][this.questionGen['synonymsIndex']]}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field style="width: 40%" *ngIf = "Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex] && questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined">
+                  <input matInput placeholder="Synonym" [(ngModel)]="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]">
+                </mat-form-field>
+              </div>
+              <div>
+                <button mat-raised-button color="primary" (click)="generate()">Generate Question</button>
+              </div>
+            </div>
+          </div>
         </mat-card-content>
-        <mat-card-footer>
-          <!-- <h2 style="margin:10px">Puntaje total: {{stat.score}}</h2> -->
-        </mat-card-footer>
       </mat-card>
     </mat-grid-tile>
   </mat-grid-list>
