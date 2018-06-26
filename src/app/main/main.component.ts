@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { labels, keyWords } from './google.syntax';
+import { DomSanitizer } from '@angular/platform-browser';
+import { Router } from '@angular/router';
+import {MatSnackBar} from '@angular/material';
 
 @Component({
   selector: 'app-main',
@@ -18,17 +21,25 @@ export class MainComponent implements OnInit {
     {route: 'azureCognitiveService', name: 'Azure', color: '#a5ce00'},
     {route: 'aylienTextApi', name: 'Aylien', color: '#28384e'}
   ];
-  private ruta = '';
-  displayedColumns = ['Entity', 'Score'];
   private analysis = [];
   private tree;
   private token;
   private label;
   private sentence;
+  private questionGen = {
+    question: '',
+    answers: [],
+    keyWords: {}
+  };
+  private questionList = [];
   labels = labels;
   keyWords = keyWords;
   JSON = JSON;
-  constructor(private http: HttpClient) { }
+  Object = Object;
+  console = console;
+  constructor(private http: HttpClient, private sanitizer: DomSanitizer, private router: Router, private snackBar: MatSnackBar) {
+    this.getQuestions();
+  }
   count(list) {
     let x = 0;
     while (list !== undefined && list[x] !== undefined) {
@@ -38,14 +49,95 @@ export class MainComponent implements OnInit {
   }
   ngOnInit() {
   }
-  responder() {
-    if (this.ruta !== '') {
-      this.http.get(`${this.server}${this.ruta}`,
-        {params: {text: this.texto}}).
-        subscribe(res => {
 
-        });
+  addEntity() {
+    const entity = document.getElementById('entityName')['value'];
+    if (entity === '') {
+      return;
     }
+    document.getElementById('entityName')['value'] = '';
+    this.questionGen.keyWords[entity] = this.questionGen.keyWords[entity] ? this.questionGen.keyWords[entity] : [entity];
+  }
+  delEntity() {
+    delete this.questionGen.keyWords[this.questionGen['entityIndex']];
+    delete this.questionGen['entityIndex'];
+  }
+  delSynonym() {
+    this.questionGen.keyWords[this.questionGen['entityIndex']].splice(this.questionGen['synonymsIndex'], 1);
+    delete this.questionGen['synonymsIndex'];
+  }
+  delQuestion() {
+    delete this.questionGen.answers[this.questionGen['answerIndex']];
+    delete this.questionGen['answerIndex'];
+  }
+
+  getQuestions() {
+    this.http.get(`${this.server}getQuestions`).subscribe((res: any) => {
+      if (res.success) {
+        console.log(JSON.stringify(res));
+        this.questionList = <any>res.Questions;
+      }
+    });
+  }
+
+  generate() {
+    if (this.validateQuestion()) {
+      this.http.get(`${this.server}generateQuestion`,
+      {params: <any> this.questionGen}).subscribe((res: any) => {
+        if (res.success) {
+          this.questionList = <any>res.Questions;
+        } else {
+          this.openSnackBar('Request Failed', 'Ok');
+        }
+      });
+    } else {
+      this.openSnackBar('You need to set a question and at least 1 answer and 1 entity', 'Ok');
+    }
+  }
+
+  openSnackBar(message: string, action: string) {
+    console.log(this.snackBar);
+    this.snackBar.open(message, action, {
+      duration: 2000,
+    });
+  }
+
+  validateQuestion() {
+    let status = this.questionGen.answers.length > 0 && Object.keys(this.questionGen.keyWords).length > 0;
+    if (this.questionGen.question === '') {
+      status = false;
+    }
+    this.questionGen.answers.forEach( question => {
+      if (question === '') {
+        status = false;
+      }
+    });
+    Object.keys(this.questionGen.keyWords).forEach(key => {
+      this.questionGen.keyWords[key].forEach(synonym => {
+        if (synonym === '') {
+          status = false;
+        }
+      });
+    });
+    return status;
+  }
+  readTextFile(file, callback) {
+    const rawFile = new XMLHttpRequest();
+    rawFile.overrideMimeType('application/json');
+    rawFile.open('GET', file, true);
+    rawFile.onreadystatechange = function() {
+        if (rawFile.readyState === 4 && rawFile.status.toString() === '200') {
+            callback(rawFile.responseText);
+        }
+    };
+    rawFile.send(null);
+  }
+
+  loadFile() {
+    this.readTextFile('/Users/Documents/workspace/test.json', function(text) {
+        const data = JSON.parse(text);
+        console.log(data);
+    });
   }
   checkText() {
     this.label = undefined;
@@ -59,16 +151,16 @@ export class MainComponent implements OnInit {
     this.http.get(`${this.server}googleTree`,
       {params: {text: this.texto}}).
       subscribe(res => {
-        for (let c = 0; c < (<Array<Object>>res).length; c++) {
-          const sentence = res[c];
-          res[c].pos = c;
+        for (let c = 0; c < (<Array<Object>>res['treeData']).length; c++) {
+          const sentence = res['treeData'][c];
+          res['treeData'][c].pos = c;
           this.flatten(sentence['root'], c).forEach(token => {
             this.analysis[token['pos']] = token;
             token['background'] = this.stringToColour(token['label']);
             token['contrast'] = this.contrast(token['background']);
           });
         }
-        this.tree = res;
+        this.tree = res['treeData'];
         this.procs.pop();
       });
   }

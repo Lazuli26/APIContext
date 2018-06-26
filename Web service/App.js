@@ -19,7 +19,7 @@ const fs = require('fs');
 var synonyms;
 
 
-const interviewLanguage= require('./LanguageData/English_SyntaxData').DATA; 
+const interviewLanguage= require('./LanguageData/English_SyntaxData').DATA;
 
 
 /************************************************
@@ -30,17 +30,17 @@ var language="en";
 
 
 var readSynonymsFile = function (filePath,callback){
-	fs.readFile(filePath, (err, data) => {  
+	fs.readFile(filePath, (err, data) => {
     if (err){
     	return {};
-    } 
+    }
     else{
     	console.log(JSON.parse(data));
 
     	callback(JSON.parse(data));
     	//return JSON.parse(data);
     }
-    
+
 	});
 
 }
@@ -325,7 +325,7 @@ class sentenceChecker {
 
 	// special case for do and does when use n't do and does are auxiliar
 	checkForAux(token,tokenList,index){
-		
+
 		if (token.dependencyEdge.label != interviewLanguage.auxiliar){
 
 			if (index < (tokenList.length-1) && tokenList[index+1].dependencyEdge.label != interviewLanguage.negation){
@@ -456,7 +456,7 @@ class AnswerChecker {
 		var limit= list.length;
 
 		for(let i=0; i <limit; i++){
-			
+
 			if (stringSimilarity.compareTwoStrings(list[i],word) >= 0.8 ){
 				return true;
 			}
@@ -489,7 +489,7 @@ class AnswerChecker {
 
 
 	analyzeModifiers(modifiers){
-		
+
 		var limit= modifiers.length;
 		var score=0;
 		for(let i=0; i < limit; i++)
@@ -505,18 +505,18 @@ class AnswerChecker {
 
 	analyzeTokens(token){
 		var score=0;
-		
+
 		if (this.synonymsList.length ===0){
 			return 0;
 		}
 
-		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar) 
+		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar)
 			|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
 
 			score = this.compareWithSynonyms(token.text);
 
 		}
-		
+
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			score += this.analyzeModifiers(token.modifiers);
 		}
@@ -533,7 +533,7 @@ class AnswerChecker {
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
 			console.log("Analizando oracion.....");
-			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format 
+			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format
 				score += this.analyzeTokens(data[i].root);
 			}
 			if (i+1=== limit){
@@ -544,7 +544,7 @@ class AnswerChecker {
 		}
 
 
-		
+
 	}
 
 	isCorrectAnswer(){
@@ -566,7 +566,7 @@ class AnswerChecker {
 
 class Answer{
 
-	
+
 	/******************************************************
 	Data: set of sentences, per sentence have a list of tokens and a valid propety 0= valid, 1= invalid
 	*******************************************************/
@@ -574,7 +574,7 @@ class Answer{
 
 		this.identification= identification;
 		this.questionIdentification= questionIdentification;
-		this.data= data; 
+		this.data= data;
 	}
 
 	getData(){
@@ -593,17 +593,17 @@ class Question{
 		this.keyWords= keyWords;
 		this.listManager = new listManager();
 		this.allRelatedWords= this.getSynonymsList(keyWords,synonymsData);
-		
+
 
 	}
 
-	
+
 
 	searchInSynonymsList(synonymsList,word){
-		
+
 		var limit= synonymsList.length;
 		for (let i=0; i < limit; i++){
-			
+
 			if (this.listManager.searchWordInList(synonymsList[i].list,word)){
 				//add one key that is making a reference for that synonyms
 				synonymsList[i].keysAmount +=1;
@@ -621,7 +621,7 @@ class Question{
 			if (this.searchInSynonymsList(synonymsList,keyWords[i].text)=== false ){
 				synonymsList.push(this.getSynonimsForKey(keyWords[i],synonymsData));
 			}
-			
+
 		}
 
 		return synonymsList;
@@ -703,7 +703,7 @@ class PARAGRAPH {
             	j++;
             	this.sentencesValidation.push(this.sentence.isValid());
             	if ( j < sentences.length){
-            		
+
             		this.sentence= new sentenceChecker(sentences[j]);
 
             	}
@@ -748,7 +748,7 @@ app.get('/googleTree',function(req,res){
     	question= new Question(1,"Object programing", 0 ,"What is an object?",
 
 		[ {"text":"Representation","synonymsIndex": "0"},{"text":"Reproduction","synonymsIndex": "0"},{"text":"Functions","synonymsIndex": "1"}],synonyms);
-		
+
        GoogleNLP
       .analyzeEntitySentiment({document: document})
         .then(results => {
@@ -786,6 +786,7 @@ app.get('/googleTree',function(req,res){
         res.send(JSON.stringify(err));
     });
 });
+
 app.get('/googleEntities',function(req,res){
     const document = {
       content: req.query.text,
@@ -1210,4 +1211,3 @@ var server = app.listen(8081, function ()
     var port = server.address().port;
     console.log("Listen at %s:%s", host, port);
 });
-

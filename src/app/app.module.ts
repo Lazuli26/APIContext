@@ -12,7 +12,8 @@ import {
   MatCardModule,
   MatCheckboxModule,
   MatTableModule,
-  MatGridListModule
+  MatGridListModule,
+  MatSnackBarModule
   } from '@angular/material';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSelectModule} from '@angular/material/select';
@@ -42,9 +43,9 @@ import {MatIconModule} from '@angular/material/icon';
     MatProgressSpinnerModule,
     MatSelectModule,
     MatTooltipModule,
-    MatIconModule
+    MatIconModule,
+    MatSnackBarModule
   ],
-  providers: [],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
