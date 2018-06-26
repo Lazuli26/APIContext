@@ -10,7 +10,6 @@ const AYLIENTextAPI = require('aylien_textapi');
 const credentials = require('./API_KEYS').API_KEYS;
 const request = require('request');
 
-
 /**************************
 	For read or write files
 ***************************/
@@ -18,6 +17,10 @@ const request = require('request');
 const fs = require('fs');
 var synonyms;
 
+/**********************************************************
+	INSTANCE OF FILE MANAGER OBJECT
+**********************************************************/
+//const fileManager= new fileManager(fs,'QuestionsData/questions.json');
 
 const interviewLanguage= require('./LanguageData/English_SyntaxData').DATA;
 
@@ -82,11 +85,14 @@ GOOGLE CLOUD
 // Instancia de Google Natural Languaje Processing
 const GoogleNLP = new glanguage.LanguageServiceClient();
 
+/*********************************************************
+	INSTANCE OF GOOGLE API MANAGER OBJECT
+**********************************************************/
+//const googleApiManager= new GoogleApiManager(GoogleNLP);
+
 
 /*********************************************************
-
 	FOR STRING SIMILARITY
-
 *********************************************************/
 var stringSimilarity = require('string-similarity');
 
@@ -216,6 +222,290 @@ app.get('/aylienTextApi',function(req,res){
     	}
 	});
 });
+
+
+
+class FileManager{
+	constructor(fileStream, filePath){
+
+		this.fileStream= fileStream;
+		this.filePath= filePath;
+		this.fileData={};
+
+	}
+
+	readFile(callback) {
+		this.fileStream.readFile(this.filePath, (err, data) => {
+    		if (err){
+    			callback(false);
+    		}
+
+    		else
+    		{ 
+    			if (data.length ===0){
+
+    				this.fileData={ "Questions": []
+    								};
+    			}
+    			else{
+    				this.fileData= JSON.parse(data);
+    			} 
+
+    			callback(true);
+    		}	  
+	});
+
+	}
+
+	writeInFile(callback){
+		
+		this.fileStream.writeFile(this.filePath, JSON.stringify(this.fileData), 'utf8', function(error){
+	
+			if (error){
+
+				callback(false);
+			}
+			else{
+
+				callback(true);
+
+				}
+		}); 
+
+	}
+
+	getQuestionsInMemory(){
+
+
+
+		var limit = this.fileData.Questions.length;
+		var questions = [];
+		var questionData;
+
+		for(let i=0; i < limit;i++){
+			questionData={"QuestionID": this.fileData.Questions[i].questionID,
+						  "QuestionText": this.fileData.Questions[i].text
+						 }
+
+			questions.push(questionData);
+		}
+
+		return questions;
+	}
+
+	getQuestionFromFile(callback){
+		var that=this;
+		this.readFile(function(response){
+
+			if (response){
+				callback(that.getQuestionsInMemory(),true);
+			}
+			else{
+				callback([],false);
+			}
+		});
+	}
+
+}
+
+class AnswersManager {
+	
+	constructor(googleApiManager){
+
+		this.googleApiManager=googleApiManager;
+
+	
+	}
+
+
+	addPoint(text){
+
+		if (text[text.length-1] != '.'){
+			text+= '.';
+		}
+
+		return text;
+	}
+
+	getEnvironment(){
+		return this;
+	}
+
+
+	getTreeForAnswers (answers,index, answersTrees ,environment, callback) {
+
+		console.log("\n iteracion numero: "+ index+ "\n");
+		console.log(answers, index);
+		if (index === answers.length){
+			return callback(true,answersTrees);
+		}
+
+		else
+		{
+
+			answers[index]= environment.addPoint(answers[index]);
+			environment.googleApiManager.setDocument( answers[index] ,'PLAIN_TEXT');
+		  	
+		  	var entities={};
+		  	environment.googleApiManager.EntitiesSentiment(function(results, result){
+		  		console.log(" result \n\n "+ result);
+		  		if (result){
+
+		        results[0].entities.forEach(entity => {
+		         	entities[entity.name] = {
+		            type: entity.type,
+		            sentiment: entity.sentiment,
+		            salience: entity.salience,
+		            metadata: entity.metadata,
+		            mentions: entity.mentions,
+		            name: entity.name
+
+		            }
+
+		          });
+		        console.log("Analyze syntax");
+		        environment.googleApiManager.AnalyzeSyntax(function(syntaxData,result){
+		        	console.log(" result analyze \n\n "+ result);
+		        	if (result){
+
+
+		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
+		        		answersTrees.push(answerTree);  //for response data
+		        		console.log(" Answer inserted \n\n");
+		  		 		console.log(answerTree);
+		        		//forWrite.answers.push(answerTree); 
+		        		index+=1;
+
+		        		environment.getTreeForAnswers(answers, index,answersTrees, environment ,callback);
+		        		
+		        	}
+		        	else{
+		        		
+		        		return callback(false,[]);
+		        	}
+
+		  		  });
+
+		    }
+
+		    else{
+		    	return callback(false,[]);
+		    }
+
+		        
+
+		  	});
+		}
+
+	}
+
+/*
+	getTreesForAnswers (answers,forWrite,googleApiManager,answersTrees,callback) {
+		 
+		answers.forEach( answer =>{
+
+			console.log("procesing answer...");
+			console.log(answer);
+		  	var entities= {};
+		  	googleApiManager.setDocument(answer,'PLAIN_TEXT');
+		  	
+		  	googleApiManager.EntitiesSentiment(function(results, result){
+		  		
+		  		if (result){
+
+		        results[0].entities.forEach(entity => {
+		         	entities[entity.name] = {
+		            type: entity.type,
+		            sentiment: entity.sentiment,
+		            salience: entity.salience,
+		            metadata: entity.metadata,
+		            mentions: entity.mentions,
+		            name: entity.name
+
+		            }
+		          });
+
+		        googleApiManager.AnalyzeSyntax(function(syntaxData,result){
+
+		        	if (result){
+
+
+		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
+		        		answersTrees.push(answerTree);  //for response data
+		        		console.log(" Answer inserted \n\n");
+		  		 		console.log(answerTree);
+		        		forWrite.answers.push(answerTree); 
+		        		if (answersTrees.length === answers.length){
+		        			return callback(true);
+		        		}
+
+		        	}
+		        	else{
+		        		return callback(false);
+		        	}
+
+		  		  });
+
+		    }
+
+		    else{
+		    	return callback(false);
+		    }
+
+		        
+
+		  	});
+		  	
+
+		  });
+
+	}
+*/
+
+}
+
+
+class GoogleApiManager {
+
+	constructor(googleNLP){
+		this.googleNLP= googleNLP;
+		this.document=undefined;
+	}
+
+	setDocument(text,textType){
+		this.document = {
+    	content: text,
+    	type: textType,
+  		};
+	}
+
+	AnalyzeSyntax(callback){
+
+		this.googleNLP.analyzeSyntax({document: this.document})
+			.then(syntax => {
+				callback(syntax,true);	
+    			})
+
+    		.catch(err => {
+        		callback([], false);
+   			 	});
+
+	}
+
+	EntitiesSentiment(callback){
+
+		this.googleNLP.analyzeEntitySentiment({document: this.document})
+        .then(results => {
+
+        	callback(results,true);
+        })
+        .catch(e =>{
+
+        	callback([], false);
+        });
+	}
+}
+
 
 
 class TOKEN {
@@ -430,7 +720,7 @@ class listManager{
 Todavía se puede mejorar que se elimine la lista de sinonimos cuando se encuentra una keyword, para eliminar los sinónimos asociados a esa keyword,
 podrían tenerse un contador de palabras clave asociadas a la lista para conocer si se debe eliminar la lista de sinónimos
 ******************************/
-class AnswerChecker {
+class MediumAnswerChecker {
 
 	constructor(question,answer,checkerLanguage){
 		this.question=question;
@@ -441,7 +731,7 @@ class AnswerChecker {
 		this.totalPoints=this.keyWords.length;
 		this.validSentence=0;
 		this.synonymsList= question.getAllRelatedWords();
-		console.log("****************** Obtener puntos ************************+");
+
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
 		this.correctFactor=0.70;
 
@@ -526,9 +816,6 @@ class AnswerChecker {
 
 	analyzeSentence(synonymsList,answer){
 		var score=0;
-		console.log("datos de respuesta....");
-		console.log(answer.getData());
-
 		var data= answer.getData();
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
@@ -536,14 +823,10 @@ class AnswerChecker {
 			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format
 				score += this.analyzeTokens(data[i].root);
 			}
-			if (i+1=== limit){
-
-				return score;
-
-			}
+			
 		}
 
-
+		return score;
 
 	}
 
@@ -766,16 +1049,15 @@ app.get('/googleTree',function(req,res){
 
 	    	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, entities).sentences;
 			var answer= new Answer(1,1,paragraph);
-			var answerChecker= new AnswerChecker(question,answer, interviewLanguage);
+			var answerChecker= new MediumAnswerChecker(question,answer, interviewLanguage);
 
-			console.log(answerChecker);
           	res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
 				"isCorrectAnswer": answerChecker.isCorrectAnswer()} ,"treeData": paragraph}));
         })
         .catch(e =>{
         	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, {}).sentences;
 			var answer= new Answer(1,1,paragraph);
-			var answerChecker= new AnswerChecker(question,answer, interviewLanguage);
+			var answerChecker= new MediumAnswerChecker(question,answer, interviewLanguage);
         	res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
 			"isCorrectAnswer": answerChecker.isCorrectAnswer()} ,"treeData": paragraph}));
         });
@@ -863,344 +1145,108 @@ console.log("**************** Leyendo Archivo *******************");
 
 readSynonymsFile('SynonymsData/Synonyms.json',function(data){
 	synonyms= data;
-	/*
-	question= new Question(1,"Object programing", "What is an object?",
-		[ {"text":"Representation","synonymsIndex": "0"},{"text":"Reproduction","synonymsIndex": "0"},{"text":"Functions","synonymsIndex": "1"}],synonyms);
-
-	var a =
-	[
-    {
-        "sentence": "We love Angular js, and we don't like React.",
-        "root": {
-            "pos": 1,
-            "text": "love",
-            "label": "ROOT",
-            "partOfSpeech": {
-                "tag": "VERB",
-                "mood": "INDICATIVE",
-                "number": "SINGULAR",
-                "tense": "PRESENT"
-            },
-            "lemma": "love",
-            "modifiers": [
-                {
-                    "pos": 11,
-                    "text": ".",
-                    "label": "P",
-                    "partOfSpeech": {
-                        "tag": "PUNCT"
-                    },
-                    "lemma": "."
-                },
-                {
-                    "pos": 9,
-                    "text": "like",
-                    "label": "CONJ",
-                    "partOfSpeech": {
-                        "tag": "VERB"
-                    },
-                    "lemma": "like",
-                    "modifiers": [
-                        {
-                            "pos": 10,
-                            "text": "React",
-                            "label": "DOBJ",
-                            "partOfSpeech": {
-                                "tag": "NOUN",
-                                "number": "SINGULAR"
-                            },
-                            "lemma": "React"
-                        },
-                        {
-                            "pos": 8,
-                            "text": "n't",
-                            "label": "NEG",
-                            "partOfSpeech": {
-                                "tag": "ADV"
-                            },
-                            "lemma": "n't"
-                        },
-                        {
-                            "pos": 7,
-                            "text": "do",
-                            "label": "AUX",
-                            "partOfSpeech": {
-                                "tag": "VERB",
-                                "mood": "INDICATIVE",
-                                "tense": "PRESENT"
-                            },
-                            "lemma": "do"
-                        },
-                        {
-                            "pos": 6,
-                            "text": "we",
-                            "label": "NSUBJ",
-                            "partOfSpeech": {
-                                "tag": "PRON",
-                                "case": "NOMINATIVE",
-                                "number": "PLURAL",
-                                "person": "FIRST"
-                            },
-                            "lemma": "we"
-                        }
-                    ]
-                },
-                {
-                    "pos": 5,
-                    "text": "and",
-                    "label": "CC",
-                    "partOfSpeech": {
-                        "tag": "CONJ"
-                    },
-                    "lemma": "and"
-                },
-                {
-                    "pos": 4,
-                    "text": ",",
-                    "label": "P",
-                    "partOfSpeech": {
-                        "tag": "PUNCT"
-                    },
-                    "lemma": ","
-                },
-                {
-                    "pos": 3,
-                    "text": "js",
-                    "label": "DOBJ",
-                    "partOfSpeech": {
-                        "tag": "NOUN",
-                        "number": "PLURAL"
-                    },
-                    "lemma": "j",
-                    "modifiers": [
-                        {
-                            "pos": 2,
-                            "text": "Angular",
-                            "label": "NN",
-                            "partOfSpeech": {
-                                "tag": "NOUN",
-                                "number": "SINGULAR",
-                                "proper": "PROPER"
-                            },
-                            "lemma": "Angular"
-                        }
-                    ]
-                },
-                {
-                    "pos": 0,
-                    "text": "We",
-                    "label": "NSUBJ",
-                    "partOfSpeech": {
-                        "tag": "PRON",
-                        "case": "NOMINATIVE",
-                        "number": "PLURAL",
-                        "person": "FIRST"
-                    },
-                    "lemma": "We"
-                }
-            ]
-        },
-        "valid": 0
-    },
-    {
-        "sentence": "Use of time.",
-        "root": {
-            "pos": 12,
-            "text": "Use",
-            "label": "ROOT",
-            "partOfSpeech": {
-                "tag": "NOUN",
-                "number": "SINGULAR"
-            },
-            "lemma": "Use",
-            "modifiers": [
-                {
-                    "pos": 15,
-                    "text": ".",
-                    "label": "P",
-                    "partOfSpeech": {
-                        "tag": "PUNCT"
-                    },
-                    "lemma": "."
-                },
-                {
-                    "pos": 13,
-                    "text": "of",
-                    "label": "PREP",
-                    "partOfSpeech": {
-                        "tag": "ADP"
-                    },
-                    "lemma": "of",
-                    "modifiers": [
-                        {
-                            "pos": 14,
-                            "text": "time",
-                            "label": "POBJ",
-                            "partOfSpeech": {
-                                "tag": "NOUN",
-                                "number": "SINGULAR"
-                            },
-                            "lemma": "time"
-                        }
-                    ]
-                }
-            ]
-        },
-        "valid": -1
-    },
-    {
-        "sentence": "Angular is good.",
-        "root": {
-            "pos": 17,
-            "text": "is",
-            "label": "ROOT",
-            "partOfSpeech": {
-                "tag": "VERB",
-                "mood": "INDICATIVE",
-                "number": "SINGULAR",
-                "person": "THIRD",
-                "tense": "PRESENT"
-            },
-            "lemma": "be",
-            "modifiers": [
-                {
-                    "pos": 19,
-                    "text": ".",
-                    "label": "P",
-                    "partOfSpeech": {
-                        "tag": "PUNCT"
-                    },
-                    "lemma": "."
-                },
-                {
-                    "pos": 18,
-                    "text": "good",
-                    "label": "ACOMP",
-                    "partOfSpeech": {
-                        "tag": "ADJ"
-                    },
-                    "lemma": "good"
-                },
-                {
-                    "pos": 16,
-                    "text": "Angular",
-                    "label": "NSUBJ",
-                    "partOfSpeech": {
-                        "tag": "NOUN",
-                        "number": "SINGULAR",
-                        "proper": "PROPER"
-                    },
-                    "lemma": "Angular"
-                }
-            ]
-        },
-        "valid": 0
-    },
-    {
-        "sentence": "Ana is Juan.",
-        "root": {
-            "pos": 21,
-            "text": "is",
-            "label": "ROOT",
-            "partOfSpeech": {
-                "tag": "VERB",
-                "mood": "INDICATIVE",
-                "number": "SINGULAR",
-                "person": "THIRD",
-                "tense": "PRESENT"
-            },
-            "lemma": "be",
-            "modifiers": [
-                {
-                    "pos": 23,
-                    "text": ".",
-                    "label": "P",
-                    "partOfSpeech": {
-                        "tag": "PUNCT"
-                    },
-                    "lemma": "."
-                },
-                {
-                    "pos": 22,
-                    "text": "Juan",
-                    "label": "ATTR",
-                    "partOfSpeech": {
-                        "tag": "NOUN",
-                        "number": "SINGULAR",
-                        "proper": "PROPER"
-                    },
-                    "lemma": "Juan"
-                },
-                {
-                    "pos": 20,
-                    "text": "Ana",
-                    "label": "NSUBJ",
-                    "partOfSpeech": {
-                        "tag": "NOUN",
-                        "number": "SINGULAR",
-                        "proper": "PROPER"
-                    },
-                    "lemma": "Ana"
-                }
-            ]
-        },
-        "valid": -1
-    },
-    {
-        "sentence": "Ana's car.",
-        "root": {
-            "pos": 26,
-            "text": "car",
-            "label": "ROOT",
-            "partOfSpeech": {
-                "tag": "NOUN",
-                "number": "SINGULAR"
-            },
-            "lemma": "car",
-            "modifiers": [
-                {
-                    "pos": 27,
-                    "text": ".",
-                    "label": "P",
-                    "partOfSpeech": {
-                        "tag": "PUNCT"
-                    },
-                    "lemma": "."
-                },
-                {
-                    "pos": 24,
-                    "text": "Ana",
-                    "label": "POSS",
-                    "partOfSpeech": {
-                        "tag": "NOUN",
-                        "number": "SINGULAR",
-                        "proper": "PROPER"
-                    },
-                    "lemma": "Ana",
-                    "modifiers": [
-                        {
-                            "pos": 25,
-                            "text": "'s",
-                            "label": "PS",
-                            "partOfSpeech": {
-                                "tag": "PRT"
-                            },
-                            "lemma": "'s"
-                        }
-                    ]
-                }
-            ]
-        },
-        "valid": -1
-    }
-]
-
-	var answer= new Answer(1,1,a);
-	new AnswerChecker(question,answer, interviewLanguage);
-
-	*/
-
+	
 });
+
+
+app.get('/genQuestion', function(req,res) {
+  
+  console.log("atendiendo petición .........");
+
+  req.query= JSON.parse(JSON.stringify(req.query));
+  
+  var googleApiManager = new GoogleApiManager(GoogleNLP);
+  var fileManager = new FileManager(fs,'QuestionsData/questions.json');
+
+
+  var answersTrees=[];
+  var answers = JSON.parse(req.query.answers);
+
+
+
+  console.log("answers  \n\n\n");
+  console.log(answers);
+  console.log("\n\n\n");
+
+
+  var words = JSON.parse(req.query.words);
+/*
+  console.log("Words  \n\n\n");
+  console.log(words);
+  console.log("\n\n\n");
+*/
+  console.log(req.query);
+  var forWrite={
+  	"questionID": "",
+  	"text": "",
+  	"answers": [],
+  	"keyWords":[]
+  };
+  
+  var ansM= new AnswersManager(googleApiManager);
+
+  fileManager.readFile(function(result){
+  	if (result){
+
+  
+
+  		forWrite["questionID"]= fileManager.fileData.Questions.length;
+  		forWrite["text"]= req.query.question;
+
+  		ansM.getTreeForAnswers (answers, 0 ,answersTrees, ansM.getEnvironment() ,function(response,trees){
+  			
+  			if (response){
+
+  				forWrite.answers= trees;
+  				for( var key in words){
+		  		forWrite.keyWords.push(words[key]);
+		  		}	
+
+		  		fileManager.fileData.Questions.push(forWrite);
+
+		  		
+
+				 fileManager.writeInFile(function(resp){
+
+				 	if (resp){
+
+				 		res.send(JSON.stringify({"success":true,"Questions": fileManager.getQuestionsInMemory()} ));
+				 	}
+				 	else{
+				 		res.send(JSON.stringify({"success":false,"Questions": []} ));
+				 	}
+				 });
+  			}
+
+  			else{
+  				res.send(JSON.stringify({"success":false,"Questions": []} ));
+  			}
+
+  		});
+		 
+
+  	}
+
+  });
+ 
+  
+})
+
+
+app.get('/getQuestions', function(req,res) {
+	console.log("Atendiendo petición... ");
+	var fileManager = new FileManager(fs,'QuestionsData/questions.json');
+	fileManager.getQuestionFromFile(function(data, result){
+
+		if (result){
+			res.send(JSON.stringify({"success":true,"Questions": data} ));
+		}
+		else{
+			res.send(JSON.stringify({"success":false,"Questions": data} ));
+		}
+	})
+
+})
 
 
 
