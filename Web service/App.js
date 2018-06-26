@@ -307,6 +307,19 @@ class FileManager{
 		});
 	}
 
+	getQuestionById(questionID,callback){
+		var that= this;
+		this.readFile(function(response){
+
+			if (response){
+				callback(that.fileData.Questions[questionID],true);
+			}
+			else{
+				callback([],false);
+			}
+		});
+	}
+
 }
 
 class AnswersManager {
@@ -335,9 +348,9 @@ class AnswersManager {
 
 	getTreeForAnswers (answers,index, answersTrees ,environment, callback) {
 
-		console.log("\n iteracion numero: "+ index+ "\n");
-		console.log(answers, index);
+
 		if (index === answers.length){
+			
 			return callback(true,answersTrees);
 		}
 
@@ -349,7 +362,6 @@ class AnswersManager {
 		  	
 		  	var entities={};
 		  	environment.googleApiManager.EntitiesSentiment(function(results, result){
-		  		console.log(" result \n\n "+ result);
 		  		if (result){
 
 		        results[0].entities.forEach(entity => {
@@ -364,17 +376,15 @@ class AnswersManager {
 		            }
 
 		          });
-		        console.log("Analyze syntax");
+	
 		        environment.googleApiManager.AnalyzeSyntax(function(syntaxData,result){
-		        	console.log(" result analyze \n\n "+ result);
+
 		        	if (result){
 
 
 		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
 		        		answersTrees.push(answerTree);  //for response data
-		        		console.log(" Answer inserted \n\n");
-		  		 		console.log(answerTree);
-		        		//forWrite.answers.push(answerTree); 
+		        		
 		        		index+=1;
 
 		        		environment.getTreeForAnswers(answers, index,answersTrees, environment ,callback);
@@ -399,69 +409,6 @@ class AnswersManager {
 		}
 
 	}
-
-/*
-	getTreesForAnswers (answers,forWrite,googleApiManager,answersTrees,callback) {
-		 
-		answers.forEach( answer =>{
-
-			console.log("procesing answer...");
-			console.log(answer);
-		  	var entities= {};
-		  	googleApiManager.setDocument(answer,'PLAIN_TEXT');
-		  	
-		  	googleApiManager.EntitiesSentiment(function(results, result){
-		  		
-		  		if (result){
-
-		        results[0].entities.forEach(entity => {
-		         	entities[entity.name] = {
-		            type: entity.type,
-		            sentiment: entity.sentiment,
-		            salience: entity.salience,
-		            metadata: entity.metadata,
-		            mentions: entity.mentions,
-		            name: entity.name
-
-		            }
-		          });
-
-		        googleApiManager.AnalyzeSyntax(function(syntaxData,result){
-
-		        	if (result){
-
-
-		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
-		        		answersTrees.push(answerTree);  //for response data
-		        		console.log(" Answer inserted \n\n");
-		  		 		console.log(answerTree);
-		        		forWrite.answers.push(answerTree); 
-		        		if (answersTrees.length === answers.length){
-		        			return callback(true);
-		        		}
-
-		        	}
-		        	else{
-		        		return callback(false);
-		        	}
-
-		  		  });
-
-		    }
-
-		    else{
-		    	return callback(false);
-		    }
-
-		        
-
-		  	});
-		  	
-
-		  });
-
-	}
-*/
 
 }
 
@@ -718,8 +665,7 @@ class listManager{
 
 
 /******************************
-Todavía se puede mejorar que se elimine la lista de sinonimos cuando se encuentra una keyword, para eliminar los sinónimos asociados a esa keyword,
-podrían tenerse un contador de palabras clave asociadas a la lista para conocer si se debe eliminar la lista de sinónimos
+primera implementación
 ******************************/
 class MediumAnswerChecker {
 
@@ -847,6 +793,140 @@ class MediumAnswerChecker {
 		}
 	}
 }
+
+/******************************
+segunda implementación
+******************************/
+class AnswerChecker {
+
+	constructor(question,answer,checkerLanguage){
+		console.log("Inicializando valores \n \n ");
+		console.log(question);
+		console.log("\n \n");
+		this.question=question;
+		this.answer= answer;
+
+		this.checkerLanguage= checkerLanguage;
+
+		this.totalPoints=this.question.keyWords.length;
+		this.validSentence=0;
+		//list of keywords, each key word 
+		this.synonymsList= this.question.keyWords;
+
+		console.log(this.synonymsList);
+		console.log("\n \n");
+
+		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
+		console.log(" \n \n Finalizó el análisis: "+ this.gottenPoints +" \n \n ");
+		this.correctFactor=0.70;
+
+	}
+
+
+	fullSynonymsComparison(list, word){
+		var limit= list.length;
+
+		for(let i=0; i <limit; i++){
+			
+			if (stringSimilarity.compareTwoStrings(list[i],word) >= 0.8 ){
+				return true;
+			}
+		}
+		return false;
+
+	}
+
+
+
+	compareWithSynonyms(word) {
+		var limit= this.synonymsList.length;
+
+		for(let i=0; i < limit; i++){
+
+			if (this.fullSynonymsComparison (this.synonymsList[i],word)) { //if the word is in the synonyms list at position i
+
+				this.synonymsList.splice(i,1);
+
+				return 1;
+			}
+		}
+
+		return 0;
+
+	}
+
+	analyzeModifiers(modifiers){
+		
+		var limit= modifiers.length;
+		var score=0;
+		for(let i=0; i < limit; i++)
+		{
+			if (this.synonymsList.length===0){
+				break;
+			}
+
+			score += this.analyzeTokens(modifiers[i]);
+		}
+		return score;
+	}
+
+	analyzeTokens(token){
+		var score=0;
+		
+		if (this.synonymsList.length ===0){
+			return 0;
+		}
+
+		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar) 
+			|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
+
+			score = this.compareWithSynonyms(token.text);
+
+		}
+		
+		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
+			score += this.analyzeModifiers(token.modifiers);
+		}
+
+		return score;
+	}
+
+	analyzeSentence(synonymsList,answer){
+		var score=0;
+		var data= answer.getData();
+
+		console.log("datos de la respuesta");
+		console.log("\n \n"+ JSON.stringify(data) +"  \n \n");
+		var limit= data.length; //get the sentences amounts
+		for (let i=0; i < limit; i++) {
+
+			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format 
+				score += this.analyzeTokens(data[i].root);
+			}
+			
+		}
+
+		return score;
+
+	}
+
+	isCorrectAnswer(){
+
+		if ((this.totalPoints * this.correctFactor) <= this.gottenPoints){
+			return true;
+		}
+
+		else if (Math.abs((this.totalPoints * this.correctFactor) - this.gottenPoints) < 0.4 ){
+			return true
+
+		}
+
+		else{
+			return false;
+		}
+	}
+}
+
 
 class Answer{
 
@@ -1163,13 +1243,13 @@ app.get('/genQuestion', function(req,res) {
   var answers = JSON.parse(req.query.answers);
 
 
-
+/*
   console.log("answers  \n\n\n");
   console.log(answers);
   console.log("\n\n\n");
+*/
 
-
-  var words = JSON.parse(req.query.words);
+  var words = JSON.parse(req.query.keyWords);
 /*
   console.log("Words  \n\n\n");
   console.log(words);
@@ -1245,6 +1325,46 @@ app.get('/getQuestions', function(req,res) {
 			res.send(JSON.stringify({"success":false,"Questions": data} ));
 		}
 	})
+
+})
+
+app.get('/isCorrectAnswer',function(req,res){
+
+	console.log("atendiendo peticion");
+	var googleApiManager = new GoogleApiManager(GoogleNLP);
+	var fileManager = new FileManager(fs,'QuestionsData/questions.json');
+	var ansM= new AnswersManager(googleApiManager);
+
+	fileManager.getQuestionById(req.query.questionID ,function(questionData,result){
+
+		
+
+		if (result){
+
+			//parse response ang get data
+			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
+				if (response){
+					
+					var answer= new Answer(questionData.questionID,1,trees[0]);
+
+					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
+
+					res.send(JSON.stringify({"success":true ,"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
+										"isCorrectAnswer": answerChecker.isCorrectAnswer(), "pendingKeyWords": answerChecker.synonymsList } }));
+				}
+
+				else{
+					res.send(JSON.stringify({"success":false ,"AnswerData":{}}));
+				}
+			});
+
+		
+		}
+
+		else{
+			res.send(JSON.stringify({"success":false ,"AnswerData":{}}));
+		}
+	});
 
 })
 
