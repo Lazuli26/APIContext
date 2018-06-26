@@ -235,7 +235,7 @@ class FileManager{
 
 	}
 
-	readFile(callback){
+	readFile(callback) {
 		this.fileStream.readFile(this.filePath, (err, data) => {
     		if (err){
     			callback(false);
@@ -283,7 +283,6 @@ class FileManager{
 		var questions = [];
 		var questionData;
 
-		console.log(limit);
 		for(let i=0; i < limit;i++){
 			questionData={"QuestionID": this.fileData.Questions[i].questionID,
 						  "QuestionText": this.fileData.Questions[i].text
@@ -293,6 +292,19 @@ class FileManager{
 		}
 
 		return questions;
+	}
+
+	getQuestionFromFile(callback){
+		var that=this;
+		this.readFile(function(response){
+
+			if (response){
+				callback(that.getQuestionsInMemory(),true);
+			}
+			else{
+				callback([],false);
+			}
+		});
 	}
 
 }
@@ -1220,11 +1232,24 @@ app.get('/genQuestion', function(req,res) {
   
 })
 
-/*
-app.get('/genQuestion', function(req,res) {
 
-}
-*/
+app.get('/getQuestions', function(req,res) {
+	console.log("Atendiendo petición... ");
+	var fileManager = new FileManager(fs,'QuestionsData/questions.json');
+	fileManager.getQuestionFromFile(function(data, result){
+
+		if (result){
+			res.send(JSON.stringify({"success":true,"Questions": data} ));
+		}
+		else{
+			res.send(JSON.stringify({"success":false,"Questions": data} ));
+		}
+	})
+
+})
+
+
+
 
 var server = app.listen(8081, function ()
 {
