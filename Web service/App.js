@@ -241,7 +241,7 @@ class FileManager{
     		}
 
     		else
-    		{ 
+    		{
     			if (data.length ===0){
 
     				this.fileData={ "Questions": []
@@ -249,18 +249,18 @@ class FileManager{
     			}
     			else{
     				this.fileData= JSON.parse(data);
-    			} 
+    			}
 
     			callback(true);
-    		}	  
+    		}
 	});
 
 	}
 
 	writeInFile(callback){
-		
+
 		this.fileStream.writeFile(this.filePath, JSON.stringify(this.fileData), 'utf8', function(error){
-	
+
 			if (error){
 
 				callback(false);
@@ -270,7 +270,7 @@ class FileManager{
 				callback(true);
 
 				}
-		}); 
+		});
 
 	}
 
@@ -309,12 +309,12 @@ class FileManager{
 }
 
 class AnswersManager {
-	
+
 	constructor(googleApiManager){
 
 		this.googleApiManager=googleApiManager;
 
-	
+
 	}
 
 
@@ -345,7 +345,7 @@ class AnswersManager {
 
 			answers[index]= environment.addPoint(answers[index]);
 			environment.googleApiManager.setDocument( answers[index] ,'PLAIN_TEXT');
-		  	
+
 		  	var entities={};
 		  	environment.googleApiManager.EntitiesSentiment(function(results, result){
 		  		console.log(" result \n\n "+ result);
@@ -373,14 +373,14 @@ class AnswersManager {
 		        		answersTrees.push(answerTree);  //for response data
 		        		console.log(" Answer inserted \n\n");
 		  		 		console.log(answerTree);
-		        		//forWrite.answers.push(answerTree); 
+		        		//forWrite.answers.push(answerTree);
 		        		index+=1;
 
 		        		environment.getTreeForAnswers(answers, index,answersTrees, environment ,callback);
-		        		
+
 		        	}
 		        	else{
-		        		
+
 		        		return callback(false,[]);
 		        	}
 
@@ -392,7 +392,7 @@ class AnswersManager {
 		    	return callback(false,[]);
 		    }
 
-		        
+
 
 		  	});
 		}
@@ -401,16 +401,16 @@ class AnswersManager {
 
 /*
 	getTreesForAnswers (answers,forWrite,googleApiManager,answersTrees,callback) {
-		 
+
 		answers.forEach( answer =>{
 
 			console.log("procesing answer...");
 			console.log(answer);
 		  	var entities= {};
 		  	googleApiManager.setDocument(answer,'PLAIN_TEXT');
-		  	
+
 		  	googleApiManager.EntitiesSentiment(function(results, result){
-		  		
+
 		  		if (result){
 
 		        results[0].entities.forEach(entity => {
@@ -434,7 +434,7 @@ class AnswersManager {
 		        		answersTrees.push(answerTree);  //for response data
 		        		console.log(" Answer inserted \n\n");
 		  		 		console.log(answerTree);
-		        		forWrite.answers.push(answerTree); 
+		        		forWrite.answers.push(answerTree);
 		        		if (answersTrees.length === answers.length){
 		        			return callback(true);
 		        		}
@@ -452,10 +452,10 @@ class AnswersManager {
 		    	return callback(false);
 		    }
 
-		        
+
 
 		  	});
-		  	
+
 
 		  });
 
@@ -483,7 +483,7 @@ class GoogleApiManager {
 
 		this.googleNLP.analyzeSyntax({document: this.document})
 			.then(syntax => {
-				callback(syntax,true);	
+				callback(syntax,true);
     			})
 
     		.catch(err => {
@@ -823,7 +823,7 @@ class MediumAnswerChecker {
 			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format
 				score += this.analyzeTokens(data[i].root);
 			}
-			
+
 		}
 
 		return score;
@@ -1145,16 +1145,16 @@ console.log("**************** Leyendo Archivo *******************");
 
 readSynonymsFile('SynonymsData/Synonyms.json',function(data){
 	synonyms= data;
-	
+
 });
 
 
 app.get('/genQuestion', function(req,res) {
-  
+
   console.log("atendiendo petición .........");
 
   req.query= JSON.parse(JSON.stringify(req.query));
-  
+
   var googleApiManager = new GoogleApiManager(GoogleNLP);
   var fileManager = new FileManager(fs,'QuestionsData/questions.json');
 
@@ -1163,11 +1163,9 @@ app.get('/genQuestion', function(req,res) {
   var answers = JSON.parse(req.query.answers);
 
 
-
   console.log("answers  \n\n\n");
   console.log(answers);
-  console.log("\n\n\n");
-
+  console.log("\n");
 
   var words = JSON.parse(req.query.words);
 /*
@@ -1182,29 +1180,29 @@ app.get('/genQuestion', function(req,res) {
   	"answers": [],
   	"keyWords":[]
   };
-  
+
   var ansM= new AnswersManager(googleApiManager);
 
   fileManager.readFile(function(result){
   	if (result){
 
-  
+
 
   		forWrite["questionID"]= fileManager.fileData.Questions.length;
   		forWrite["text"]= req.query.question;
 
   		ansM.getTreeForAnswers (answers, 0 ,answersTrees, ansM.getEnvironment() ,function(response,trees){
-  			
+
   			if (response){
 
   				forWrite.answers= trees;
   				for( var key in words){
 		  		forWrite.keyWords.push(words[key]);
-		  		}	
+		  		}
 
 		  		fileManager.fileData.Questions.push(forWrite);
 
-		  		
+
 
 				 fileManager.writeInFile(function(resp){
 
@@ -1223,13 +1221,13 @@ app.get('/genQuestion', function(req,res) {
   			}
 
   		});
-		 
+
 
   	}
 
   });
- 
-  
+
+
 })
 
 

@@ -12,6 +12,7 @@ import {MatSnackBar} from '@angular/material';
 })
 export class MainComponent implements OnInit {
   private texto = '';
+  private questionIndex;
   private server = 'http://localhost:8081/';
   private procs = [];
   private endpoints = [
@@ -82,8 +83,12 @@ export class MainComponent implements OnInit {
 
   generate() {
     if (this.validateQuestion()) {
-      this.http.get(`${this.server}generateQuestion`,
-      {params: <any> this.questionGen}).subscribe((res: any) => {
+      this.http.get(`${this.server}genQuestion`,
+      {params: {
+        question: this.questionGen.question,
+        answers: JSON.stringify(this.questionGen.answers),
+        words: JSON.stringify(this.questionGen.keyWords)
+      }}).subscribe((res: any) => {
         if (res.success) {
           this.questionList = <any>res.Questions;
         } else {

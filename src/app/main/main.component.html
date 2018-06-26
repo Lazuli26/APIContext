@@ -6,7 +6,7 @@
         <mat-card-content>
           <div>
             <mat-form-field *ngIf = "questionList.length>0">
-              <mat-select [(value)]="questionGen.answerIndex" placeholder="Select Question">
+              <mat-select [(value)]="questionIndex" placeholder="Select Question">
                 <mat-option *ngFor="let question of questionList" value = {{question.QuestionID}}>
                   {{question.QuestionText}}
                 </mat-option>
