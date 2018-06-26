@@ -1163,17 +1163,7 @@ app.get('/genQuestion', function(req,res) {
   var answers = JSON.parse(req.query.answers);
 
 
-  console.log("answers  \n\n\n");
-  console.log(answers);
-  console.log("\n");
-
   var words = JSON.parse(req.query.words);
-/*
-  console.log("Words  \n\n\n");
-  console.log(words);
-  console.log("\n\n\n");
-*/
-  console.log(req.query);
   var forWrite={
   	"questionID": "",
   	"text": "",
