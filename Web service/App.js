@@ -778,6 +778,10 @@ class AnswerChecker {
 
 	}
 
+	getFinalScore(){
+		return (this.gottenPoints / this.totalPoints) *100;
+	}
+
 	isCorrectAnswer(){
 
 		if ((this.totalPoints * this.correctFactor) <= this.gottenPoints){
@@ -1202,7 +1206,7 @@ app.get('/isCorrectAnswer',function(req,res){
 
 					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
 
-					res.send(JSON.stringify({"success":true ,"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
+					res.send(JSON.stringify({"success":true ,"AnswerData":{"totalScore": answerChecker.totalPoints, "gottenScore": answerChecker.gottenPoints, "finalGrade": answerChecker.getFinalScore() ,
 										"isCorrectAnswer": answerChecker.isCorrectAnswer(), "pendingKeyWords": answerChecker.synonymsList, "mentionedKeyWords": answerChecker.includedKeyWords } }));
 				}
 
