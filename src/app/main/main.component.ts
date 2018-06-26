@@ -133,10 +133,11 @@ export class MainComponent implements OnInit {
 
   answer() {
     this.procs.push(0);
-    this.http.get('/answer',
-      {params: {text: this.texto, questionID: this.questionIndex}})
+    this.http.get(`${this.server}isCorrectAnswer`,
+      {params: {answer: this.texto, questionID: this.questionIndex}})
       .subscribe((res: any) => {
         if (res.success) {
+          console.log(res.AnswerData);
           this.procs.pop();
         } else {
           this.procs.pop();

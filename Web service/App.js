@@ -349,7 +349,7 @@ class AnswersManager {
 
 
 		if (index === answers.length){
-			
+
 			return callback(true,answersTrees);
 		}
 
@@ -375,7 +375,7 @@ class AnswersManager {
 		            }
 
 		          });
-	
+
 		        environment.googleApiManager.AnalyzeSyntax(function(syntaxData,result){
 
 		        	if (result){
@@ -669,7 +669,7 @@ segunda implementación
 class AnswerChecker {
 
 	constructor(question,answer,checkerLanguage){
-		
+
 		this.question=question;
 		this.answer= answer;
 
@@ -679,7 +679,7 @@ class AnswerChecker {
 
 		this.totalPoints=this.question.keyWords.length;
 		this.validSentence=0;
-		//list of keywords, each key word 
+		//list of keywords, each key word
 		this.synonymsList= this.question.keyWords;
 
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
@@ -696,7 +696,7 @@ class AnswerChecker {
 		var limit= list.length;
 
 		for(let i=0; i <limit; i++){
-			
+
 			if (stringSimilarity.compareTwoStrings(list[i],word) >= 0.75 ){
 				return true;
 			}
@@ -725,7 +725,7 @@ class AnswerChecker {
 	}
 
 	analyzeModifiers(modifiers){
-		
+
 		var limit= modifiers.length;
 		var score=0;
 		for(let i=0; i < limit; i++)
@@ -741,18 +741,18 @@ class AnswerChecker {
 
 	analyzeTokens(token){
 		var score=0;
-		
+
 		if (this.synonymsList.length ===0){
 			return 0;
 		}
 
-		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar) 
+		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar)
 			|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
 
 			score = this.compareWithSynonyms(token.lemma);
 
 		}
-		
+
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			score += this.analyzeModifiers(token.modifiers);
 		}
@@ -768,10 +768,10 @@ class AnswerChecker {
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
 
-			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format 
+			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format
 				score += this.analyzeTokens(data[i].root);
 			}
-			
+
 		}
 
 		return score;
@@ -981,7 +981,7 @@ app.get('/googleTree',function(req,res){
 
     .then(syntax => {
     	// res.send(JSON.stringify(results))
-    	
+
        GoogleNLP
       .analyzeEntitySentiment({document: document})
         .then(results => {
@@ -999,13 +999,13 @@ app.get('/googleTree',function(req,res){
 
 	    	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, entities).sentences;
 
-	
+
 
           	res.send(JSON.stringify({"treeData": paragraph}));
         })
         .catch(e =>{
         	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, {}).sentences;
-			
+
         	res.send(JSON.stringify({"treeData": paragraph}));
         });
     })
@@ -1194,14 +1194,15 @@ app.get('/isCorrectAnswer',function(req,res){
 
 	fileManager.getQuestionById(req.query.questionID ,function(questionData,result){
 
-		
+
 
 		if (result){
 
 			//parse response ang get data
+			console.log(req.query.answer);
 			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
 				if (response){
-					
+
 					var answer= new Answer(questionData.questionID,1,trees[0]);
 
 					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
@@ -1215,7 +1216,7 @@ app.get('/isCorrectAnswer',function(req,res){
 				}
 			});
 
-		
+
 		}
 
 		else{
