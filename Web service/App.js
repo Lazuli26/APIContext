@@ -306,6 +306,19 @@ class FileManager{
 		});
 	}
 
+	getQuestionById(questionID,callback){
+		var that= this;
+		this.readFile(function(response){
+
+			if (response){
+				callback(that.fileData.Questions[questionID],true);
+			}
+			else{
+				callback([],false);
+			}
+		});
+	}
+
 }
 
 class AnswersManager {
@@ -334,9 +347,9 @@ class AnswersManager {
 
 	getTreeForAnswers (answers,index, answersTrees ,environment, callback) {
 
-		console.log("\n iteracion numero: "+ index+ "\n");
-		console.log(answers, index);
+
 		if (index === answers.length){
+			
 			return callback(true,answersTrees);
 		}
 
@@ -348,7 +361,6 @@ class AnswersManager {
 
 		  	var entities={};
 		  	environment.googleApiManager.EntitiesSentiment(function(results, result){
-		  		console.log(" result \n\n "+ result);
 		  		if (result){
 
 		        results[0].entities.forEach(entity => {
@@ -363,17 +375,15 @@ class AnswersManager {
 		            }
 
 		          });
-		        console.log("Analyze syntax");
+	
 		        environment.googleApiManager.AnalyzeSyntax(function(syntaxData,result){
-		        	console.log(" result analyze \n\n "+ result);
+
 		        	if (result){
 
 
 		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
 		        		answersTrees.push(answerTree);  //for response data
-		        		console.log(" Answer inserted \n\n");
-		  		 		console.log(answerTree);
-		        		//forWrite.answers.push(answerTree);
+
 		        		index+=1;
 
 		        		environment.getTreeForAnswers(answers, index,answersTrees, environment ,callback);
@@ -398,69 +408,6 @@ class AnswersManager {
 		}
 
 	}
-
-/*
-	getTreesForAnswers (answers,forWrite,googleApiManager,answersTrees,callback) {
-
-		answers.forEach( answer =>{
-
-			console.log("procesing answer...");
-			console.log(answer);
-		  	var entities= {};
-		  	googleApiManager.setDocument(answer,'PLAIN_TEXT');
-
-		  	googleApiManager.EntitiesSentiment(function(results, result){
-
-		  		if (result){
-
-		        results[0].entities.forEach(entity => {
-		         	entities[entity.name] = {
-		            type: entity.type,
-		            sentiment: entity.sentiment,
-		            salience: entity.salience,
-		            metadata: entity.metadata,
-		            mentions: entity.mentions,
-		            name: entity.name
-
-		            }
-		          });
-
-		        googleApiManager.AnalyzeSyntax(function(syntaxData,result){
-
-		        	if (result){
-
-
-		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
-		        		answersTrees.push(answerTree);  //for response data
-		        		console.log(" Answer inserted \n\n");
-		  		 		console.log(answerTree);
-		        		forWrite.answers.push(answerTree);
-		        		if (answersTrees.length === answers.length){
-		        			return callback(true);
-		        		}
-
-		        	}
-		        	else{
-		        		return callback(false);
-		        	}
-
-		  		  });
-
-		    }
-
-		    else{
-		    	return callback(false);
-		    }
-
-
-
-		  	});
-
-
-		  });
-
-	}
-*/
 
 }
 
@@ -717,26 +664,29 @@ class listManager{
 
 
 /******************************
-Todavía se puede mejorar que se elimine la lista de sinonimos cuando se encuentra una keyword, para eliminar los sinónimos asociados a esa keyword,
-podrían tenerse un contador de palabras clave asociadas a la lista para conocer si se debe eliminar la lista de sinónimos
+segunda implementación
 ******************************/
-class MediumAnswerChecker {
+class AnswerChecker {
 
 	constructor(question,answer,checkerLanguage){
+		
 		this.question=question;
 		this.answer= answer;
 
 		this.checkerLanguage= checkerLanguage;
-		this.keyWords= question.getKeyWords();
-		this.totalPoints=this.keyWords.length;
+
+		this.includedKeyWords=[];
+
+		this.totalPoints=this.question.keyWords.length;
 		this.validSentence=0;
-		this.synonymsList= question.getAllRelatedWords();
+		//list of keywords, each key word 
+		this.synonymsList= this.question.keyWords;
 
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
+
 		this.correctFactor=0.70;
 
 	}
-
 
 	textFormating(text){
 		return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
@@ -746,8 +696,8 @@ class MediumAnswerChecker {
 		var limit= list.length;
 
 		for(let i=0; i <limit; i++){
-
-			if (stringSimilarity.compareTwoStrings(list[i],word) >= 0.8 ){
+			
+			if (stringSimilarity.compareTwoStrings(list[i],word) >= 0.75 ){
 				return true;
 			}
 		}
@@ -755,19 +705,16 @@ class MediumAnswerChecker {
 
 	}
 
-	compareWithSynonyms(word){
+	compareWithSynonyms(word) {
 		var limit= this.synonymsList.length;
 		word= this.textFormating(word);
 
 		for(let i=0; i < limit; i++){
 
-			if (this.fullSynonymsComparison (this.synonymsList[i].list,word)) { //if the word is in the synonyms list at position i
-				this.synonymsList[i].keysAmount-=1;
+			if (this.fullSynonymsComparison (this.synonymsList[i],word)) { //if the word is in the synonyms list at position i
 
-				if (this.synonymsList[i].keysAmount===0){
-					this.synonymsList.splice(i,1);
-				}
-				//we can make a more powerful comparation for the word and the synoyms list, use a library
+				this.includedKeyWords.push(this.synonymsList[i]);
+				this.synonymsList.splice(i,1);
 
 				return 1;
 			}
@@ -777,9 +724,8 @@ class MediumAnswerChecker {
 
 	}
 
-
 	analyzeModifiers(modifiers){
-
+		
 		var limit= modifiers.length;
 		var score=0;
 		for(let i=0; i < limit; i++)
@@ -795,18 +741,18 @@ class MediumAnswerChecker {
 
 	analyzeTokens(token){
 		var score=0;
-
+		
 		if (this.synonymsList.length ===0){
 			return 0;
 		}
 
-		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar)
+		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar) 
 			|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
 
-			score = this.compareWithSynonyms(token.text);
+			score = this.compareWithSynonyms(token.lemma);
 
 		}
-
+		
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			score += this.analyzeModifiers(token.modifiers);
 		}
@@ -817,17 +763,23 @@ class MediumAnswerChecker {
 	analyzeSentence(synonymsList,answer){
 		var score=0;
 		var data= answer.getData();
+
+
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
-			console.log("Analizando oracion.....");
-			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format
+
+			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format 
 				score += this.analyzeTokens(data[i].root);
 			}
-
+			
 		}
 
 		return score;
 
+	}
+
+	getFinalScore(){
+		return (this.gottenPoints / this.totalPoints) *100;
 	}
 
 	isCorrectAnswer(){
@@ -846,6 +798,7 @@ class MediumAnswerChecker {
 		}
 	}
 }
+
 
 class Answer{
 
@@ -1027,11 +980,8 @@ app.get('/googleTree',function(req,res){
     .analyzeSyntax({document: document})
 
     .then(syntax => {
-    	//res.send(JSON.stringify(results))
-    	question= new Question(1,"Object programing", 0 ,"What is an object?",
-
-		[ {"text":"Representation","synonymsIndex": "0"},{"text":"Reproduction","synonymsIndex": "0"},{"text":"Functions","synonymsIndex": "1"}],synonyms);
-
+    	// res.send(JSON.stringify(results))
+    	
        GoogleNLP
       .analyzeEntitySentiment({document: document})
         .then(results => {
@@ -1048,18 +998,15 @@ app.get('/googleTree',function(req,res){
           });
 
 	    	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, entities).sentences;
-			var answer= new Answer(1,1,paragraph);
-			var answerChecker= new MediumAnswerChecker(question,answer, interviewLanguage);
 
-          	res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
-				"isCorrectAnswer": answerChecker.isCorrectAnswer()} ,"treeData": paragraph}));
+	
+
+          	res.send(JSON.stringify({"treeData": paragraph}));
         })
         .catch(e =>{
         	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, {}).sentences;
-			var answer= new Answer(1,1,paragraph);
-			var answerChecker= new MediumAnswerChecker(question,answer, interviewLanguage);
-        	res.send(JSON.stringify({"AnswerData":{"TotalScore": answerChecker.totalPoints, "GottenScore": answerChecker.gottenPoints,
-			"isCorrectAnswer": answerChecker.isCorrectAnswer()} ,"treeData": paragraph}));
+			
+        	res.send(JSON.stringify({"treeData": paragraph}));
         });
     })
 
@@ -1162,8 +1109,10 @@ app.get('/genQuestion', function(req,res) {
   var answersTrees=[];
   var answers = JSON.parse(req.query.answers);
 
-
   var words = JSON.parse(req.query.words);
+
+
+  console.log(req.query);
   var forWrite={
   	"questionID": "",
   	"text": "",
@@ -1233,6 +1182,46 @@ app.get('/getQuestions', function(req,res) {
 			res.send(JSON.stringify({"success":false,"Questions": data} ));
 		}
 	})
+
+})
+
+app.get('/isCorrectAnswer',function(req,res){
+
+	console.log("atendiendo peticion");
+	var googleApiManager = new GoogleApiManager(GoogleNLP);
+	var fileManager = new FileManager(fs,'QuestionsData/questions.json');
+	var ansM= new AnswersManager(googleApiManager);
+
+	fileManager.getQuestionById(req.query.questionID ,function(questionData,result){
+
+		
+
+		if (result){
+
+			//parse response ang get data
+			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
+				if (response){
+					
+					var answer= new Answer(questionData.questionID,1,trees[0]);
+
+					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
+
+					res.send(JSON.stringify({"success":true ,"AnswerData":{"totalScore": answerChecker.totalPoints, "gottenScore": answerChecker.gottenPoints, "finalGrade": answerChecker.getFinalScore() ,
+										"isCorrectAnswer": answerChecker.isCorrectAnswer(), "pendingKeyWords": answerChecker.synonymsList, "mentionedKeyWords": answerChecker.includedKeyWords } }));
+				}
+
+				else{
+					res.send(JSON.stringify({"success":false ,"AnswerData":{}}));
+				}
+			});
+
+		
+		}
+
+		else{
+			res.send(JSON.stringify({"success":false ,"AnswerData":{}}));
+		}
+	});
 
 })
 
