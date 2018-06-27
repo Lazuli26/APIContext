@@ -345,7 +345,16 @@ class TOKEN {
 				}
 			}
 			return false;
-
+		}
+		relevantModifiers(){
+			let relevant = []
+			for (var x in this.modifiers){
+				let tag = this.modifiers[x].partOfSpeech.tag;
+				if( tag === 'NOUN' || tag === 'VERB' || tag === 'ADJ'){
+					relevant.push(this.modifiers[x])
+				}
+			}
+			return relevant;
 		}
     print(tab){
         console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
