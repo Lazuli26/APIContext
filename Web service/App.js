@@ -628,11 +628,13 @@ class sentenceChecker {
 				return -1;
 			}
 		}
+
 		else if (this.syntaxData.nouns_prons===0){
 			return -1;
 		}
 
 		else if(this.syntaxData.others===0){
+
 			return -1;
 		}
 
@@ -663,6 +665,238 @@ class listManager{
 }
 
 
+class TreeAnalyzer {
+
+	constructor() {
+		this.validSentence=0;
+	}
+
+	searchEntityInAnswer (entityToken, userAnswer) {
+
+		var limit= userAnswer.length; //get the sentences amounts
+		//console.log("\n \n "+ "Buscando entidad en respuesta" +"\n \n");
+		var resultToken;
+		for (let i=0; i < limit; i++) {
+
+			/*
+			console.log("\n \n "+ "Analizando oración " +"\n \n");
+			console.log(userAnswer[i].sentence);
+			console.log("\n \n");
+			*/
+			if (userAnswer[i].valid===this.validSentence ){ //if the sentences has a valid format 
+
+				//console.log("iniciando análsis de tokens \n \n ");
+				resultToken = this.analyzeTokens(userAnswer[i].root,entityToken);
+				
+				if (resultToken != undefined){ //if the token was founded
+					break;
+				}
+			}
+			
+		}
+
+		return resultToken;		
+	}
+
+	countModifiersTags(token) {
+		var tagsResult={};
+
+		if ((token.hasOwnProperty("modifiers") ===false) || token.modifiers=== undefined){
+			console.log("this token doesn't have modifiers");
+			return tagsResult;
+		}
+
+		var limit= token.modifiers.length;
+		
+		for(let i=0; i < limit; i++ ){
+
+			if (tagsResult.hasOwnProperty(token.modifiers[i].partOfSpeech.tag)){
+				tagsResult[token.modifiers[i].partOfSpeech.tag] += 1;
+			}
+			else{
+				tagsResult[token.modifiers[i].partOfSpeech.tag]=1;
+			}
+			
+		}
+
+		return tagsResult;
+
+	}
+
+/*
+	analyzeModifiers(){
+
+	}
+
+
+	analyzeTokens(){
+
+	}
+*/
+	analyzeModifiers(modifiers,entityToken) {
+
+		var limit= modifiers.length;
+		var resultToken= undefined;
+		for(let i=0; i < limit; i++)
+		{
+
+			resultToken = this.analyzeTokens(modifiers[i],entityToken);
+			if (resultToken != undefined ){
+				break;
+			}
+
+		}
+		return resultToken;
+
+	}
+
+	
+	analyzeTokens(currentToken,entityToken){
+
+		console.log(currentToken.lemma +" ----  "+ entityToken.lemma);
+
+		if (currentToken.lemma === entityToken.lemma){
+			console.log("token similares \n \n");
+			console.log(currentToken.lemma +" ----  "+ entityToken.lemma);
+			return currentToken;
+		}
+		
+		if (currentToken.hasOwnProperty("modifiers") && currentToken.modifiers!= undefined){
+			return this.analyzeModifiers(currentToken.modifiers,entityToken);
+		}
+
+		//if currentToken doesn't have a coincidence with 
+		return undefined;
+
+	}
+
+}
+
+
+class AnswersComparator {
+
+	constructor(answers, answer){
+		this.answers=answers;
+		this.userAnswer= answer;
+		this.coincidenceWithAnswers=[];
+		this.treeAnalyzer= new TreeAnalyzer();
+		this.coincidenceFactor=0.75;
+	}
+
+/*
+	matchwithAnyAnswer(){
+
+	}
+*/
+	compareEntitiesModifiers(userAnswerTokenModifiers, storeAnswerTokenModifiers){
+		var coincidence=0;
+		var haveSimilarStructure= true;
+		var coincidenceHash={};
+		for ( var element in storeAnswerTokenModifiers){
+
+			// if the key exist in userAnswerTokenModifiers
+			if (userAnswerTokenModifiers.hasOwnProperty(element)){
+
+			}
+		}
+
+		return haveSimilarStructure;
+	}
+
+
+
+	compareTokensPartOFSpeech(answerToken, userAnswerToken){
+		var totalTags=0;
+		var coincidences=0;
+		for (var element in answerToken.partOfSpeech){
+			totalTags=0;
+			if (userAnswerToken.partOfSpeech.hasOwnProperty(element)){
+				if ( answerToken.partOfSpeech[element] === userAnswerToken.partOfSpeech[element]){
+					coincidences+=1;
+				}
+			}
+		}
+
+		return coincidences/ totalTags;
+
+	}
+
+	analyzeModifiers(modifiers,data){
+		
+		var limit= modifiers.length;
+		var score=0;
+		for(let i=0; i < limit; i++)
+		{
+			this.analyzeTokens(modifiers[i],data);
+		}
+
+		
+	}
+
+	analyzeTokens(token,data) {
+
+		if (token.hasOwnProperty("entity") ) { //if token is an entity
+			
+			data.answerEntities+=1;
+
+			// search answer token in user answer
+			var tokenRes= this.treeAnalyzer.searchEntityInAnswer(token, this.userAnswer);
+			console.log("\n\n "+ tokenRes +"\n \n");
+
+			if ( tokenRes != undefined ){
+
+				// count modifiers of both tokens
+				var answerTokenTags= this.treeAnalyzer.countModifiersTags(token);
+				var userAnswerTokenTags= this.treeAnalyzer.countModifiersTags(tokenRes);
+				
+				// compare token's modifiers of user answer token and store answer token
+
+					
+			}
+
+		}
+		
+		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
+			  this.analyzeModifiers(token.modifiers,data);
+		}
+
+	}
+
+
+	initComparison(){
+
+		var limit= this.answers.length;
+		var sentences;
+		for (let i=0; i < limit; i++) {
+
+
+			sentences= this.answers[i].length;
+			var answerComparisonData={
+					"index": i,
+					"coincidenceDegree":0,
+					"answerEntities":0,
+					"entitiesCoincidence":0,
+			}
+
+			for(let j= 0; j< sentences; j++){
+
+				this.analyzeTokens(this.answers[i][j].root,answerComparisonData);
+			}
+			console.log("answer sentences: \n \n ");
+			console.log(answerComparisonData);
+			//add to the answer comparison stadistics
+			this.coincidenceWithAnswers.push(answerComparisonData);
+
+		}
+
+		console.log("All answers data: \n \n ");
+		console.log(this.coincidenceWithAnswers);
+
+	}
+
+
+}
+
 /******************************
 segunda implementación
 ******************************/
@@ -688,9 +922,11 @@ class AnswerChecker {
 
 	}
 
+
 	textFormating(text){
 		return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 	}
+
 
 	fullSynonymsComparison(list, word){
 		var limit= list.length;
@@ -760,7 +996,7 @@ class AnswerChecker {
 		return score;
 	}
 
-	analyzeSentence(synonymsList,answer){
+	analyzeSentence(synonymsList,answer) {
 		var score=0;
 		var data= answer.getData();
 
@@ -778,8 +1014,10 @@ class AnswerChecker {
 
 	}
 
-	getFinalScore(){
+	getFinalScore() {
+
 		return (this.gottenPoints / this.totalPoints) *100;
+	
 	}
 
 	isCorrectAnswer(){
@@ -918,7 +1156,7 @@ class PARAGRAPH {
             let token = tokens[x];
             let partOfSpeech = {};
             Object.keys(token.partOfSpeech).forEach(key => {
-            	//incluir las part of speech que no contienen unknow en su valoe
+            	//incluir las part of speech que no contienen unknow en su valor
                 if (!token.partOfSpeech[key].includes('UNKNOWN'))
                     partOfSpeech[key] = token.partOfSpeech[key];
             });
@@ -1088,13 +1326,6 @@ app.get('/IBMWatson', function(req,res){
   request(options, callback);
 });
 
-console.log("**************** Leyendo Archivo *******************");
-
-readSynonymsFile('SynonymsData/Synonyms.json',function(data){
-	synonyms= data;
-
-});
-
 
 app.get('/genQuestion', function(req,res) {
 
@@ -1187,24 +1418,31 @@ app.get('/getQuestions', function(req,res) {
 
 app.get('/isCorrectAnswer',function(req,res){
 
-	console.log("atendiendo peticion");
+	console.log("Atendiendo peticion");
 	var googleApiManager = new GoogleApiManager(GoogleNLP);
 	var fileManager = new FileManager(fs,'QuestionsData/questions.json');
 	var ansM= new AnswersManager(googleApiManager);
 
 	fileManager.getQuestionById(req.query.questionID ,function(questionData,result){
 
-		
-
-		if (result){
+		if (result) {
 
 			//parse response ang get data
 			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
-				if (response){
+				if (response) {
 					
 					var answer= new Answer(questionData.questionID,1,trees[0]);
 
 					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
+
+					console.log("\n \n Iniciando comparación de respuestas \n \n ");
+
+					var tr= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0]);
+					resp= tr.initComparison();
+					console.log("\n \n cantidad de coincidencias \n \n ");
+					console.log("--- "+ tr.coincidences+" \n \n");
+					//console.log(res);
+
 
 					res.send(JSON.stringify({"success":true ,"AnswerData":{"totalScore": answerChecker.totalPoints, "gottenScore": answerChecker.gottenPoints, "finalGrade": answerChecker.getFinalScore() ,
 										"isCorrectAnswer": answerChecker.isCorrectAnswer(), "pendingKeyWords": answerChecker.synonymsList, "mentionedKeyWords": answerChecker.includedKeyWords } }));
@@ -1218,14 +1456,19 @@ app.get('/isCorrectAnswer',function(req,res){
 		
 		}
 
+
 		else{
 			res.send(JSON.stringify({"success":false ,"AnswerData":{}}));
 		}
+
 	});
 
 })
 
 
+console.log("\n "+ "Numero redondeado"+" \n ");
+console.log(Math.round(6* 0.60));
+console.log("\n\n");
 
 
 var server = app.listen(8081, function ()
