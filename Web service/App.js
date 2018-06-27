@@ -318,7 +318,7 @@ class TOKEN {
 			}
 			for(var x in entityList){
 				for (var y in entityList[x]){
-					if (this.label===entityList[x][y])
+					if (this.lemma===entityList[x][y])
 						return true;
 				}
 			}
