@@ -141,7 +141,7 @@
                     <mat-option (click) = "
                     questionGen.answers.push('');
                     questionGen.answerIndex=JSON.stringify(questionGen.answers.length-1)">Add Answer</mat-option>
-                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delQuestion()"
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delAnswer()"
                     *ngIf="questionGen.answerIndex" [value]="questionGen.answerIndex">Delete {{this.questionGen.answers[questionGen.answerIndex]}}</mat-option>
                   </mat-select>
                 </mat-form-field>
@@ -186,14 +186,14 @@
                     questionGen.keyWords[questionGen.entityIndex].push('');
                     questionGen.synonymsIndex=JSON.stringify(questionGen.keyWords[questionGen.entityIndex].length-1)">Add synonym</mat-option>
                     <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delSynonym()"
-                    *ngIf="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined" [value]="questionGen.synonymsIndex">
+                    *ngIf="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined && questionGen.synonymsIndex!=0" [value]="questionGen.synonymsIndex">
                       Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']]}}:{{this.questionGen.keyWords[this.questionGen['entityIndex']][this.questionGen['synonymsIndex']]}}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
                 <span *ngIf = "Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex] && questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined">
                   <mat-form-field style="width: 40%">
-                    <input matInput placeholder="Synonym" [(ngModel)]="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]">
+                    <input matInput placeholder="Synonym" [disabled]="questionGen.synonymsIndex==0" [(ngModel)]="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]">
                   </mat-form-field>
                   <mat-icon *ngIf="!checkSynonym()" style="font-size: 18px; color:#f7c613">warning</mat-icon>
                 </span>

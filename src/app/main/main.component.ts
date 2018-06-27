@@ -76,15 +76,14 @@ export class MainComponent implements OnInit {
     this.questionGen.keyWords[this.questionGen['entityIndex']].splice(this.questionGen['synonymsIndex'], 1);
     delete this.questionGen['synonymsIndex'];
   }
-  delQuestion() {
-    delete this.questionGen.answers[this.questionGen['answerIndex']];
+  delAnswer() {
+    this.questionGen.answers.splice(this.questionGen['answerIndex'], 1);
     delete this.questionGen['answerIndex'];
   }
 
   getQuestions() {
     this.http.get(`${this.server}getQuestions`).subscribe((res: any) => {
       if (res.success) {
-        console.log(JSON.stringify(res));
         this.questionList = <any>res.Questions;
       }
     });
@@ -123,7 +122,7 @@ export class MainComponent implements OnInit {
           this.questionList = <any>res.Questions;
           this.openSnackBar('Success!', 'Ok');
         } else {
-          this.openSnackBar('Request Failed', 'Ok');
+          this.openSnackBar(`Request Failed: ${res.Error}`, 'Ok');
         }
       });
     } else {
@@ -138,6 +137,7 @@ export class MainComponent implements OnInit {
       .subscribe((res: any) => {
         if (res.success) {
           console.log(res.AnswerData);
+          this.openSnackBar(`Answer Score: ${res.AnswerData.finalGrade}`, 'Nice');
           this.procs.pop();
         } else {
           this.procs.pop();
@@ -145,9 +145,8 @@ export class MainComponent implements OnInit {
       });
   }
   openSnackBar(message: string, action: string) {
-    console.log(this.snackBar);
     this.snackBar.open(message, action, {
-      duration: 2000,
+      duration: 5000,
     });
   }
 

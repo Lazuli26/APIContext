@@ -3,11 +3,11 @@ var app = express();
 var http =  require('http');
 
 
-var AWS = require('aws-sdk');
+/*********************************************************
+	FOR STRING SIMILARITY
+*********************************************************/
+var stringSimilarity = require('string-similarity');
 const glanguage = require('@google-cloud/language');
-const cognitiveServices = require('cognitive-services');
-const AYLIENTextAPI = require('aylien_textapi');
-const credentials = require('./API_KEYS').API_KEYS;
 const request = require('request');
 
 /**************************
@@ -15,7 +15,6 @@ const request = require('request');
 ***************************/
 
 const fs = require('fs');
-var synonyms;
 
 /**********************************************************
 	INSTANCE OF FILE MANAGER OBJECT
@@ -24,58 +23,7 @@ var synonyms;
 
 const interviewLanguage= require('./LanguageData/English_SyntaxData').DATA;
 
-
-/************************************************
-Getting data for AWS Comprehend configuration
-*************************************************/
-
 var language="en";
-
-
-var readSynonymsFile = function (filePath,callback){
-	fs.readFile(filePath, (err, data) => {
-    if (err){
-    	return {};
-    }
-    else{
-    	console.log(JSON.parse(data));
-
-    	callback(JSON.parse(data));
-    	//return JSON.parse(data);
-    }
-
-	});
-
-}
-
-
-/****************************************
- AWS Comprehend service configuration
-******************************************/
-AWS.config = new AWS.Config();
-AWS.config.accessKeyId = credentials.amazon.userID;
-AWS.config.secretAccessKey = credentials.amazon.accessKey;
-AWS.config.region = credentials.amazon.region;
-var AmazonNLP = new AWS.Comprehend({apiVersion: credentials.amazon.API_version});
-
-/****************************************
- Azure text analysis service import and configuration
-******************************************/
-const AzureNLP = new cognitiveServices.textAnalytics({
-    apiKey: credentials.azure.azureFirstKey,
-    endpoint: credentials.azure.azureEndpoint
-});
-
-/********************************************************
-
-AYLIENT TEXT ANALYSIS SERVICE
-
-*********************************************************/
-
-var textapi = new AYLIENTextAPI({
-  application_id: credentials.Aylien.appID,
-  application_key: credentials.Aylien.appKey
-});
 
 /**********************************************************
 
@@ -85,16 +33,6 @@ GOOGLE CLOUD
 // Instancia de Google Natural Languaje Processing
 const GoogleNLP = new glanguage.LanguageServiceClient();
 
-/*********************************************************
-	INSTANCE OF GOOGLE API MANAGER OBJECT
-**********************************************************/
-//const googleApiManager= new GoogleApiManager(GoogleNLP);
-
-
-/*********************************************************
-	FOR STRING SIMILARITY
-*********************************************************/
-var stringSimilarity = require('string-similarity');
 
 app.use(function(req, res, next)
 
@@ -104,126 +42,6 @@ app.use(function(req, res, next)
     res.header("Access-Control-Allow-Methods", "DELETE, GET, POST");
     next();
 });
-
-
-app.get('/amazonComprehend',function(req,res){
-	var params = {
-                LanguageCode: "en",
-                Text: req.query.text
-            };
-    AmazonNLP.detectKeyPhrases(params, function(err, data) {
-        if (err){
-        		console.log(err, err.stack); // an error occurred}
-        		res.end(JSON.stringify({}));
-        	}
-        else
-        {
-        		//format response
-        		var respuesta={};
-        		respuesta.score=0;
-        		respuesta.keyScores=[];
-        		var limite=data.KeyPhrases.length;
-        		var keyPhrases= data.KeyPhrases;
-        		for (let i=0; i< limite;i++){
-        			respuesta.keyScores.push(
-        				{
-        					"key": keyPhrases[i].Text,
-        					"value": keyPhrases[i].Score
-        				}
-        			);
-        		}
-        		res.send(JSON.stringify(respuesta));
-    	}
-    });
-});
-
-
-app.get('/azureCognitiveService',function(req,res){
-	const headers = {
-                'Content-type': 'application/json'};
-
-
-    const body = {
-                "documents": [
-                    {
-                        "language": language,
-                        "id": 1,
-                        "text": req.query.text
-                    }
-                ]
-
-            };
-
-   /* const body=	{
-  				"language" : language,
-  				"analyzerIds" : ["4fa79af1-f22c-408d-98bb-b7d7aeef7f04",
-    								"22a6b758-420f-4745-8a3c-46835a67c0d2",
-    								"08ea174b-bfdb-4e64-987e-602f85da7f72"],
-  				"text" : req.query.text
-		};
-    */
-
-	AzureNLP.keyPhrases({headers,body})
-		.then((response) => {
-
-			res.send(JSON.stringify(response));
-
-			//Format response
-			var respuesta={};
-            respuesta.score=0;
-            respuesta.keyScores=[];
-            //azure let us to analize many documents at the same time, but now we are working with one
-            var documentsSize=response.documents.length;
-            var keyPhrasesAmount;
-            var documentsData= response.documents;
-            for (let i=0; i < documentsSize; i++)
-            {
-            	keyPhrasesAmount= documentsData[i].keyPhrases.length;
-            	for (let j=0; j< keyPhrasesAmount ;j++)
-            	{
-            	respuesta.keyScores.push({
-                		"key": documentsData[i].keyPhrases[j],
-                		"value": 0  //azure doesn't return a level of confidence
-                	}
-                	);
-            	}
-            }
-
-            res.send(JSON.stringify(respuesta));
-
-            })
-		.catch((err) => {
-			console.log(err);
-			res.end(JSON.stringify({"success":false,"data": []}));
-            });
-});
-
-app.get('/aylienTextApi',function(req,res){
-    textapi.entities(req.query.text, function(err, resp) {
-  		if (err !== null) {
-    		res.send(JSON.stringify({}));
-  			}
-  		else
-  		{
-  			//format response
-            var respuesta={};
-            respuesta.score=0;
-            respuesta.keyScores=[];
-            var limite=resp.entities.keyword!=null?resp.entities.keyword.length:0;
-            var keyPhrases= resp.entities.keyword;
-            for (let i=0; i< limite;i++){
-            	respuesta.keyScores.push(
-                	{
-                        "key": keyPhrases[i],
-                        "value": 0
-                	});
-            }
-            res.send(JSON.stringify(respuesta));
-    	}
-	});
-});
-
-
 
 class FileManager{
 	constructor(fileStream, filePath){
@@ -275,9 +93,6 @@ class FileManager{
 	}
 
 	getQuestionsInMemory(){
-
-
-
 		var limit = this.fileData.Questions.length;
 		var questions = [];
 		var questionData;
@@ -322,15 +137,9 @@ class FileManager{
 }
 
 class AnswersManager {
-
 	constructor(googleApiManager){
-
 		this.googleApiManager=googleApiManager;
-
-
 	}
-
-
 	addPoint(text){
 
 		if (text[text.length-1] != '.'){
@@ -390,25 +199,20 @@ class AnswersManager {
 
 		        	}
 		        	else{
-
+								console.log(`Error, SyntaxData: ${syntaxData}`)
 		        		return callback(false,[]);
 		        	}
 
 		  		  });
-
 		    }
 
-		    else{
+		    else {
+					console.log('Sentiment Error')
 		    	return callback(false,[]);
 		    }
-
-
-
-		  	});
+		  });
 		}
-
 	}
-
 }
 
 
@@ -434,6 +238,7 @@ class GoogleApiManager {
     			})
 
     		.catch(err => {
+					console.log(err);
         		callback([], false);
    			 	});
 
@@ -481,22 +286,9 @@ class TOKEN {
         else
             return this.partOfSpeech[filter];
     }
-    isRoot(){
+		isRoot(){
         return this.label=='ROOT';
     }
-    // addModifier(token){
-    //     if(token.itModifies(this.pos)){
-    //         this.modifiers.push(token);
-    //         return true;
-    //     }
-    //     else{
-    //         for(let x=0;this.modifiers[x]!=undefined;x++){
-    //             if(this.modifiers[x].addModifier(token))
-    //                 return true;
-    //         }
-    //         return false;
-    //     }
-    // }
     genTree(tokenList){
         for(let x = tokenList.length-1;x>=0;x--){
             if(tokenList[x].itModifies(this.pos)){
@@ -520,8 +312,20 @@ class TOKEN {
         if (this.modifiers.length==0)
             this.modifiers=undefined;
     }
+		isEntity(entityList){
+			if(this.entity !=undefined){
+				return true;
+			}
+			for(var x in entityList){
+				for (var y in entityList[x]){
+					if (this.label===entityList[x][y])
+						return true;
+				}
+			}
+			return false;
+		}
     print(tab){
-        //console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
+        console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
         if(this.modifiers!=undefined)
             this.modifiers.forEach(modifier =>{
                 modifier.print(tab+1);
@@ -745,13 +549,14 @@ class AnswerChecker {
 		if (this.synonymsList.length ===0){
 			return 0;
 		}
-
-		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar)
-			|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
-
-			score = this.compareWithSynonyms(token.lemma);
-
-		}
+		//must consider what are really "keywords"
+		// if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar)
+		// 	|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
+		//
+		// 	score = this.compareWithSynonyms(token.lemma);
+		//
+		// }
+		score = this.compareWithSynonyms(token.lemma);
 
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			score += this.analyzeModifiers(token.modifiers);
@@ -933,8 +738,6 @@ class PARAGRAPH {
                     partOfSpeech,
                     token.entity));
             this.sentence.updateValues(tokens,x);
-            console.log(JSON.stringify(this.sentence));
-            console.log(token.text.content);
             if (token.text.content[0]==='.'){
             	j++;
             	this.sentencesValidation.push(this.sentence.isValid());
@@ -1045,56 +848,6 @@ app.get('/googleEntities',function(req,res){
     });
 });
 
-app.get('/IBMWatson', function(req,res){
-  var headers = {
-      'Content-Type': 'application/json'
-  };
-  var dataString = {
-    "text": req.query.text,
-    "features": {
-      "sentiment": {},
-      "keywords": {
-        "sentiment": true
-      }
-    }
-  };
-  var options = {
-      url: 'https://gateway.watsonplatform.net/natural-language-understanding/api/v1/analyze?version=2017-02-27',
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(dataString),
-      auth: {
-          'user': 'bb64a147-f9f3-4579-85da-8f155815970f',
-          'pass': 'PrtIjxa8sGTB'
-      }
-  };
-  function callback(error, response, body) {
-      if (!error && response.statusCode == 200) {
-          var watsy = JSON.parse(body);
-          var respuesta= {};
-          respuesta.score = watsy.sentiment.document.score;
-          respuesta.keyScores = [];
-          for (let x=0;watsy.keywords[x]!=undefined;x++){
-            respuesta.keyScores.push({
-              key: watsy.keywords[x].text,
-              value: watsy.keywords[x].sentiment.score});
-          }
-          res.send(JSON.stringify(respuesta));
-      }
-      else{
-          res.send(JSON.stringify({score:0, keyScores:[]}));
-      }
-  }
-  request(options, callback);
-});
-
-console.log("**************** Leyendo Archivo *******************");
-
-readSynonymsFile('SynonymsData/Synonyms.json',function(data){
-	synonyms= data;
-
-});
-
 
 app.get('/genQuestion', function(req,res) {
 
@@ -1110,63 +863,103 @@ app.get('/genQuestion', function(req,res) {
   var answers = JSON.parse(req.query.answers);
 
   var words = JSON.parse(req.query.words);
+	var keyWords = '';
+	for (var key in words) {
+		for (var x = 0; x<words[key].length;x++) {
+			keyWords+=words[key][x] + ' '
+		}
+	}
+	GoogleNLP
+ .analyzeSyntax({document: {
+		 content: keyWords,
+		 type: 'PLAIN_TEXT',
+ 		}})
+	 .then(results => {
+		 var c = 0;
+	 	for (var key in words) {
+	 		for (var x = 0; x<words[key].length;x++) {
+				words[key][x] = results[0].tokens[c].lemma;
+				c++;
+			}
+		}
+	  var forWrite={
+	  	"questionID": "",
+	  	"text": "",
+	  	"answers": [],
+	  	"keyWords":[]
+	  };
 
+	  var ansM= new AnswersManager(googleApiManager);
 
-  console.log(req.query);
-  var forWrite={
-  	"questionID": "",
-  	"text": "",
-  	"answers": [],
-  	"keyWords":[]
-  };
+	  fileManager.readFile(function(result){
+	  	if (result){
+	  		forWrite["questionID"]= fileManager.fileData.Questions.length;
+	  		forWrite["text"]= req.query.question;
+	  		ansM.getTreeForAnswers(answers, 0 ,answersTrees, ansM.getEnvironment() ,function(response,trees){
+					let entityCounter = {};
+					let isEntity = (token, entities) => {
+						let itIs=false;
+						for (var key in entities) {
+							for (var synonym in entities[key]) {
+								if (entities[key][synonym] === token.lemma){
+									itIs=true;
+									entityCounter[key] = true;
+								}
+							}
+						}
+						for (var modifier in token.modifiers) {
+							if(isEntity(token.modifiers[modifier],entities))
+								itIs=true;
+						}
+						return itIs;
+					}
+	  			if (response){
+						for (var paragraph in trees){
+							var valid = false;
+							for (var sentence in trees[paragraph]){
+								if (trees[paragraph][sentence].valid==-1){
+									res.send(JSON.stringify({"success":false,"Questions": [], "Error": `"${trees[paragraph][sentence].sentence}" is not a complex sentence`} ));
+									return;
+								}
+								if(isEntity(trees[paragraph][sentence].root, words)){
+									valid = true;
+									break;
+								}
+							}
+							if(!valid){
+								res.send(JSON.stringify({"success":false,"Questions": [], "Error": 'All Answers must mention at least one Entity from the entity list'} ));
+								return;
+							}
+						}
+	  				forWrite.answers= trees;
+	  				for( var key in words){
+							if(!entityCounter[key]){
+								res.send(JSON.stringify({"success":false,"Questions": [], "Error": `Entity "${key}" is not used in any answer`} ));
+							}
+			  			forWrite.keyWords.push(words[key]);
+			  		}
 
-  var ansM= new AnswersManager(googleApiManager);
+			  		fileManager.fileData.Questions.push(forWrite);
+					 	fileManager.writeInFile(function(resp){
 
-  fileManager.readFile(function(result){
-  	if (result){
+					 	if (resp){
 
+					 		res.send(JSON.stringify({"success":true,"Questions": fileManager.getQuestionsInMemory()} ));
+					 	}
+					 	else{
+					 		res.send(JSON.stringify({"success":false,"Questions": [], "Error": 'Not resp'} ));
+					 	}
+					 });
+	  			}
 
+	  			else{
+	  				res.send(JSON.stringify({"success":false,"Questions": [], "Error": 'Not response'} ));
+	  			}
 
-  		forWrite["questionID"]= fileManager.fileData.Questions.length;
-  		forWrite["text"]= req.query.question;
-
-  		ansM.getTreeForAnswers (answers, 0 ,answersTrees, ansM.getEnvironment() ,function(response,trees){
-
-  			if (response){
-
-  				forWrite.answers= trees;
-  				for( var key in words){
-		  		forWrite.keyWords.push(words[key]);
-		  		}
-
-		  		fileManager.fileData.Questions.push(forWrite);
-
-
-
-				 fileManager.writeInFile(function(resp){
-
-				 	if (resp){
-
-				 		res.send(JSON.stringify({"success":true,"Questions": fileManager.getQuestionsInMemory()} ));
-				 	}
-				 	else{
-				 		res.send(JSON.stringify({"success":false,"Questions": []} ));
-				 	}
-				 });
-  			}
-
-  			else{
-  				res.send(JSON.stringify({"success":false,"Questions": []} ));
-  			}
-
-  		});
-
-
-  	}
-
-  });
-
-
+	  		});
+	  	}
+	  });
+	});
 })
 
 
@@ -1225,8 +1018,6 @@ app.get('/isCorrectAnswer',function(req,res){
 	});
 
 })
-
-
 
 
 var server = app.listen(8081, function ()
