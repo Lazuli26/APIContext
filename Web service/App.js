@@ -324,6 +324,29 @@ class TOKEN {
 			}
 			return false;
 		}
+		isEquivalent(token, entityList){
+			if(this.lemma === token.lemma){
+				return true;
+			}
+			for(var x in entityList){
+				let me = false;
+				let him = false;
+				for (var y in entityList[x]){
+					if (this.lemma===entityList[x][y])
+						me= true;
+					if (token.lemma===entityList[x][y])
+						him= true;
+				}
+				if(him && me){
+					return true;
+				}
+				if((him && !me) || (!him && me)){
+					return false;
+				}
+			}
+			return false;
+
+		}
     print(tab){
         console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
         if(this.modifiers!=undefined)
