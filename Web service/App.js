@@ -3,11 +3,11 @@ var app = express();
 var http =  require('http');
 
 
-var AWS = require('aws-sdk');
+/*********************************************************
+	FOR STRING SIMILARITY
+*********************************************************/
+var stringSimilarity = require('string-similarity');
 const glanguage = require('@google-cloud/language');
-const cognitiveServices = require('cognitive-services');
-const AYLIENTextAPI = require('aylien_textapi');
-const credentials = require('./API_KEYS').API_KEYS;
 const request = require('request');
 
 /**************************
@@ -15,7 +15,6 @@ const request = require('request');
 ***************************/
 
 const fs = require('fs');
-var synonyms;
 
 /**********************************************************
 	INSTANCE OF FILE MANAGER OBJECT
@@ -24,58 +23,7 @@ var synonyms;
 
 const interviewLanguage= require('./LanguageData/English_SyntaxData').DATA;
 
-
-/************************************************
-Getting data for AWS Comprehend configuration
-*************************************************/
-
 var language="en";
-
-
-var readSynonymsFile = function (filePath,callback){
-	fs.readFile(filePath, (err, data) => {
-    if (err){
-    	return {};
-    }
-    else{
-    	console.log(JSON.parse(data));
-
-    	callback(JSON.parse(data));
-    	//return JSON.parse(data);
-    }
-
-	});
-
-}
-
-
-/****************************************
- AWS Comprehend service configuration
-******************************************/
-AWS.config = new AWS.Config();
-AWS.config.accessKeyId = credentials.amazon.userID;
-AWS.config.secretAccessKey = credentials.amazon.accessKey;
-AWS.config.region = credentials.amazon.region;
-var AmazonNLP = new AWS.Comprehend({apiVersion: credentials.amazon.API_version});
-
-/****************************************
- Azure text analysis service import and configuration
-******************************************/
-const AzureNLP = new cognitiveServices.textAnalytics({
-    apiKey: credentials.azure.azureFirstKey,
-    endpoint: credentials.azure.azureEndpoint
-});
-
-/********************************************************
-
-AYLIENT TEXT ANALYSIS SERVICE
-
-*********************************************************/
-
-var textapi = new AYLIENTextAPI({
-  application_id: credentials.Aylien.appID,
-  application_key: credentials.Aylien.appKey
-});
 
 /**********************************************************
 
@@ -85,16 +33,6 @@ GOOGLE CLOUD
 // Instancia de Google Natural Languaje Processing
 const GoogleNLP = new glanguage.LanguageServiceClient();
 
-/*********************************************************
-	INSTANCE OF GOOGLE API MANAGER OBJECT
-**********************************************************/
-//const googleApiManager= new GoogleApiManager(GoogleNLP);
-
-
-/*********************************************************
-	FOR STRING SIMILARITY
-*********************************************************/
-var stringSimilarity = require('string-similarity');
 
 app.use(function(req, res, next)
 
@@ -104,126 +42,6 @@ app.use(function(req, res, next)
     res.header("Access-Control-Allow-Methods", "DELETE, GET, POST");
     next();
 });
-
-
-app.get('/amazonComprehend',function(req,res){
-	var params = {
-                LanguageCode: "en",
-                Text: req.query.text
-            };
-    AmazonNLP.detectKeyPhrases(params, function(err, data) {
-        if (err){
-        		console.log(err, err.stack); // an error occurred}
-        		res.end(JSON.stringify({}));
-        	}
-        else
-        {
-        		//format response
-        		var respuesta={};
-        		respuesta.score=0;
-        		respuesta.keyScores=[];
-        		var limite=data.KeyPhrases.length;
-        		var keyPhrases= data.KeyPhrases;
-        		for (let i=0; i< limite;i++){
-        			respuesta.keyScores.push(
-        				{
-        					"key": keyPhrases[i].Text,
-        					"value": keyPhrases[i].Score
-        				}
-        			);
-        		}
-        		res.send(JSON.stringify(respuesta));
-    	}
-    });
-});
-
-
-app.get('/azureCognitiveService',function(req,res){
-	const headers = {
-                'Content-type': 'application/json'};
-
-
-    const body = {
-                "documents": [
-                    {
-                        "language": language,
-                        "id": 1,
-                        "text": req.query.text
-                    }
-                ]
-
-            };
-
-   /* const body=	{
-  				"language" : language,
-  				"analyzerIds" : ["4fa79af1-f22c-408d-98bb-b7d7aeef7f04",
-    								"22a6b758-420f-4745-8a3c-46835a67c0d2",
-    								"08ea174b-bfdb-4e64-987e-602f85da7f72"],
-  				"text" : req.query.text
-		};
-    */
-
-	AzureNLP.keyPhrases({headers,body})
-		.then((response) => {
-
-			res.send(JSON.stringify(response));
-
-			//Format response
-			var respuesta={};
-            respuesta.score=0;
-            respuesta.keyScores=[];
-            //azure let us to analize many documents at the same time, but now we are working with one
-            var documentsSize=response.documents.length;
-            var keyPhrasesAmount;
-            var documentsData= response.documents;
-            for (let i=0; i < documentsSize; i++)
-            {
-            	keyPhrasesAmount= documentsData[i].keyPhrases.length;
-            	for (let j=0; j< keyPhrasesAmount ;j++)
-            	{
-            	respuesta.keyScores.push({
-                		"key": documentsData[i].keyPhrases[j],
-                		"value": 0  //azure doesn't return a level of confidence
-                	}
-                	);
-            	}
-            }
-
-            res.send(JSON.stringify(respuesta));
-
-            })
-		.catch((err) => {
-			console.log(err);
-			res.end(JSON.stringify({"success":false,"data": []}));
-            });
-});
-
-app.get('/aylienTextApi',function(req,res){
-    textapi.entities(req.query.text, function(err, resp) {
-  		if (err !== null) {
-    		res.send(JSON.stringify({}));
-  			}
-  		else
-  		{
-  			//format response
-            var respuesta={};
-            respuesta.score=0;
-            respuesta.keyScores=[];
-            var limite=resp.entities.keyword!=null?resp.entities.keyword.length:0;
-            var keyPhrases= resp.entities.keyword;
-            for (let i=0; i< limite;i++){
-            	respuesta.keyScores.push(
-                	{
-                        "key": keyPhrases[i],
-                        "value": 0
-                	});
-            }
-            res.send(JSON.stringify(respuesta));
-    	}
-	});
-});
-
-
 
 class FileManager{
 	constructor(fileStream, filePath){
@@ -275,9 +93,6 @@ class FileManager{
 	}
 
 	getQuestionsInMemory(){
-
-
-
 		var limit = this.fileData.Questions.length;
 		var questions = [];
 		var questionData;
@@ -322,15 +137,9 @@ class FileManager{
 }
 
 class AnswersManager {
-
 	constructor(googleApiManager){
-
 		this.googleApiManager=googleApiManager;
-
-
 	}
-
-
 	addPoint(text){
 
 		if (text[text.length-1] != '.'){
@@ -349,7 +158,7 @@ class AnswersManager {
 
 
 		if (index === answers.length){
-			
+
 			return callback(true,answersTrees);
 		}
 
@@ -375,7 +184,7 @@ class AnswersManager {
 		            }
 
 		          });
-	
+
 		        environment.googleApiManager.AnalyzeSyntax(function(syntaxData,result){
 
 		        	if (result){
@@ -390,25 +199,20 @@ class AnswersManager {
 
 		        	}
 		        	else{
-
+								console.log(`Error, SyntaxData: ${syntaxData}`)
 		        		return callback(false,[]);
 		        	}
 
 		  		  });
-
 		    }
 
-		    else{
+		    else {
+					console.log('Sentiment Error')
 		    	return callback(false,[]);
 		    }
-
-
-
-		  	});
+		  });
 		}
-
 	}
-
 }
 
 
@@ -434,6 +238,7 @@ class GoogleApiManager {
     			})
 
     		.catch(err => {
+					console.log(err);
         		callback([], false);
    			 	});
 
@@ -481,22 +286,9 @@ class TOKEN {
         else
             return this.partOfSpeech[filter];
     }
-    isRoot(){
+		isRoot(){
         return this.label=='ROOT';
     }
-    // addModifier(token){
-    //     if(token.itModifies(this.pos)){
-    //         this.modifiers.push(token);
-    //         return true;
-    //     }
-    //     else{
-    //         for(let x=0;this.modifiers[x]!=undefined;x++){
-    //             if(this.modifiers[x].addModifier(token))
-    //                 return true;
-    //         }
-    //         return false;
-    //     }
-    // }
     genTree(tokenList){
         for(let x = tokenList.length-1;x>=0;x--){
             if(tokenList[x].itModifies(this.pos)){
@@ -520,8 +312,60 @@ class TOKEN {
         if (this.modifiers.length==0)
             this.modifiers=undefined;
     }
+
+		isEntity(entityList){
+
+			if(this.entity !=undefined){
+				return true;
+			}
+
+			for(var x in entityList){
+				for (var y in entityList[x]){
+					if (this.lemma===entityList[x][y])
+						return true;
+				}
+			}
+			return false;
+		}
+		isEquivalent(token, entityList){
+			if(this.lemma === token.lemma){
+				return true;
+			}
+			for(var x in entityList){
+				let me = false;
+				let him = false;
+				for (var y in entityList[x]){
+					if (this.lemma===entityList[x][y])
+						me= true;
+					if (token.lemma===entityList[x][y])
+						him= true;
+				}
+				if(him && me){
+					return true;
+				}
+				if((him && !me) || (!him && me)){
+					return false;
+				}
+			}
+			return false;
+		}
+
+		relevantModifiers() {
+			let relevant = []
+			for (var x in this.modifiers){
+				let tag = this.modifiers[x].partOfSpeech.tag;
+				if( tag === 'NOUN' || tag === 'VERB' || tag === 'ADJ'){
+					relevant.push(this.modifiers[x]);
+
+				}
+
+			}
+
+			return relevant;
+		}
+
     print(tab){
-        //console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
+        console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
         if(this.modifiers!=undefined)
             this.modifiers.forEach(modifier =>{
                 modifier.print(tab+1);
@@ -544,7 +388,7 @@ class SENTENCE {
 
 class sentenceChecker {
 
-	constructor(sentence){
+	constructor(){
 
 		this.syntaxData={
 			nouns_prons:0,  //prons and nouns have the same meaning in that case
@@ -553,12 +397,8 @@ class sentenceChecker {
 			validFormat: true //it doesn't depend of number of verbs and nouns.
 		}
 
-		this.wordsAmount= this.countWords(sentence.text.content);
 	}
 
-	countWords(sentence){
-		return sentence.split(' ').length;
-	}
 
 	// special case for do and does when use n't do and does are auxiliar
 	checkForAux(token,tokenList,index){
@@ -669,10 +509,11 @@ class TreeAnalyzer {
 
 	constructor() {
 		this.validSentence=0;
+		this.entityList=[];
 	}
 
-	searchEntityInAnswer (entityToken, userAnswer) {
-
+	searchEntityInAnswer (entityToken, userAnswer,entities) {
+		this.entityList=entities;
 		var limit= userAnswer.length; //get the sentences amounts
 		//console.log("\n \n "+ "Buscando entidad en respuesta" +"\n \n");
 		var resultToken;
@@ -695,7 +536,8 @@ class TreeAnalyzer {
 			
 		}
 
-		return resultToken;		
+		return resultToken;
+
 	}
 
 	countModifiersTags(token) {
@@ -733,14 +575,14 @@ class TreeAnalyzer {
 
 	}
 */
-	analyzeModifiers(modifiers,entityToken) {
+	analyzeModifiers(modifiers,answerToken) {
 
 		var limit= modifiers.length;
 		var resultToken= undefined;
 		for(let i=0; i < limit; i++)
 		{
 
-			resultToken = this.analyzeTokens(modifiers[i],entityToken);
+			resultToken = this.analyzeTokens(modifiers[i] , answerToken );
 			if (resultToken != undefined ){
 				break;
 			}
@@ -751,18 +593,18 @@ class TreeAnalyzer {
 	}
 
 	
-	analyzeTokens(currentToken,entityToken){
+	analyzeTokens(currentToken,answerToken){
 
-		console.log(currentToken.lemma +" ----  "+ entityToken.lemma);
+		console.log(currentToken.lemma +" ----  "+ answerToken.lemma);
 
-		if (currentToken.lemma === entityToken.lemma){
+		if ( currentToken.isEquivalent( answerToken , entityList) ){
 			console.log("token similares \n \n");
-			console.log(currentToken.lemma +" ----  "+ entityToken.lemma);
+			console.log(currentToken.lemma + " ----  " + answerToken.lemma);
 			return currentToken;
 		}
 		
 		if (currentToken.hasOwnProperty("modifiers") && currentToken.modifiers!= undefined){
-			return this.analyzeModifiers(currentToken.modifiers,entityToken);
+			return this.analyzeModifiers(currentToken.modifiers,answerToken);
 		}
 
 		//if currentToken doesn't have a coincidence with 
@@ -775,12 +617,14 @@ class TreeAnalyzer {
 
 class AnswersComparator {
 
-	constructor(answers, answer){
+	constructor(answers, answer, entities) {
 		this.answers=answers;
 		this.userAnswer= answer;
 		this.coincidenceWithAnswers=[];
 		this.treeAnalyzer= new TreeAnalyzer();
 		this.coincidenceFactor=0.75;
+		this.entityList= entities;
+
 	}
 
 /*
@@ -821,7 +665,7 @@ class AnswersComparator {
 
 	}
 
-	analyzeModifiers(modifiers,data){
+	analyzeModifiers(modifiers,data) {
 		
 		var limit= modifiers.length;
 		var score=0;
@@ -833,9 +677,18 @@ class AnswersComparator {
 		
 	}
 
+
+	goThroughTokensModifiers(){
+
+	}
+
+	compareTokensModifiers(token1, token2){
+
+	}
+
 	analyzeTokens(token,data) {
 
-		if (token.hasOwnProperty("entity") ) { //if token is an entity
+		if (token.isEntity(this.entityList)) { //if token is an entity
 			
 			data.answerEntities+=1;
 
@@ -845,12 +698,16 @@ class AnswersComparator {
 
 			if ( tokenRes != undefined ){
 
+
 				// count modifiers of both tokens
-				var answerTokenTags= this.treeAnalyzer.countModifiersTags(token);
-				var userAnswerTokenTags= this.treeAnalyzer.countModifiersTags(tokenRes);
+				
+				var tokenResModifiers= tokenRes.relevantModifiers();
+				var tokenModifiers = token.relevantModifiers();
+				/***************************************************************************
 				
 				// compare token's modifiers of user answer token and store answer token
 
+				****************************************************************************/
 					
 			}
 
@@ -903,7 +760,7 @@ segunda implementación
 class AnswerChecker {
 
 	constructor(question,answer,checkerLanguage){
-		
+
 		this.question=question;
 		this.answer= answer;
 
@@ -913,7 +770,7 @@ class AnswerChecker {
 
 		this.totalPoints=this.question.keyWords.length;
 		this.validSentence=0;
-		//list of keywords, each key word 
+		//list of keywords, each key word
 		this.synonymsList= this.question.keyWords;
 
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
@@ -932,7 +789,7 @@ class AnswerChecker {
 		var limit= list.length;
 
 		for(let i=0; i <limit; i++){
-			
+
 			if (stringSimilarity.compareTwoStrings(list[i],word) >= 0.75 ){
 				return true;
 			}
@@ -961,7 +818,7 @@ class AnswerChecker {
 	}
 
 	analyzeModifiers(modifiers){
-		
+
 		var limit= modifiers.length;
 		var score=0;
 		for(let i=0; i < limit; i++)
@@ -977,18 +834,19 @@ class AnswerChecker {
 
 	analyzeTokens(token){
 		var score=0;
-		
+
 		if (this.synonymsList.length ===0){
 			return 0;
 		}
+		//must consider what are really "keywords"
+		// if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar)
+		// 	|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
+		//
+		// 	score = this.compareWithSynonyms(token.lemma);
+		//
+		// }
+		score = this.compareWithSynonyms(token.lemma);
 
-		if ((token.partOfSpeech.tag===this.checkerLanguage.verb && token.label != this.checkerLanguage.auxiliar) 
-			|| token.partOfSpeech.tag=== this.checkerLanguage.noun ){
-
-			score = this.compareWithSynonyms(token.lemma);
-
-		}
-		
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			score += this.analyzeModifiers(token.modifiers);
 		}
@@ -1004,10 +862,10 @@ class AnswerChecker {
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
 
-			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format 
+			if (data[i].valid===this.validSentence ){ //if the sentences has a valid format
 				score += this.analyzeTokens(data[i].root);
 			}
-			
+
 		}
 
 		return score;
@@ -1057,66 +915,6 @@ class Answer{
 
 }
 
-class Question{
-
-	constructor (identification, topic, level ,text,keyWords,synonymsData){
-		this.identification= identification;
-		this.topic= topic;
-		this.text= text;
-		this.level= level;
-		this.keyWords= keyWords;
-		this.listManager = new listManager();
-		this.allRelatedWords= this.getSynonymsList(keyWords,synonymsData);
-
-
-	}
-
-
-
-	searchInSynonymsList(synonymsList,word){
-
-		var limit= synonymsList.length;
-		for (let i=0; i < limit; i++){
-
-			if (this.listManager.searchWordInList(synonymsList[i].list,word)){
-				//add one key that is making a reference for that synonyms
-				synonymsList[i].keysAmount +=1;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	getSynonymsList(keyWords,synonymsData){
-		var synonymsList=[];
-		var limit= keyWords.length;
-		for (let i=0; i < limit; i++){
-			//append to the synonyms list the synonyms
-			if (this.searchInSynonymsList(synonymsList,keyWords[i].text)=== false ){
-				synonymsList.push(this.getSynonimsForKey(keyWords[i],synonymsData));
-			}
-
-		}
-
-		return synonymsList;
-
-	}
-
-	getSynonimsForKey(key,synonymsData){
-		// by default is one key that is requiring that synonyms
-		return {"list":synonymsData[key.synonymsIndex], "keysAmount": 1 };
-	}
-
-	getKeyWords(){
-		return this.keyWords;
-	}
-
-	getAllRelatedWords(){
-		return this.allRelatedWords;
-	}
-
-}
-
 class PARAGRAPH {
     constructor(sentences, tokens, entities){
     	this.sentencesValidation=[]; //have values for represent sentences valid state -1= válido, 0= válido
@@ -1151,7 +949,7 @@ class PARAGRAPH {
 
         var j=0;
 
-        this.sentence= new sentenceChecker(sentences[j]);
+        this.sentence= new sentenceChecker();
         for(let x = 0; tokens[x]!=undefined;x++){
             let token = tokens[x];
             let partOfSpeech = {};
@@ -1171,14 +969,12 @@ class PARAGRAPH {
                     partOfSpeech,
                     token.entity));
             this.sentence.updateValues(tokens,x);
-            console.log(JSON.stringify(this.sentence));
-            console.log(token.text.content);
             if (token.text.content[0]==='.'){
             	j++;
             	this.sentencesValidation.push(this.sentence.isValid());
             	if ( j < sentences.length){
 
-            		this.sentence= new sentenceChecker(sentences[j]);
+            		this.sentence= new sentenceChecker();
 
             	}
 
@@ -1219,7 +1015,7 @@ app.get('/googleTree',function(req,res){
 
     .then(syntax => {
     	// res.send(JSON.stringify(results))
-    	
+
        GoogleNLP
       .analyzeEntitySentiment({document: document})
         .then(results => {
@@ -1237,13 +1033,13 @@ app.get('/googleTree',function(req,res){
 
 	    	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, entities).sentences;
 
-	
+
 
           	res.send(JSON.stringify({"treeData": paragraph}));
         })
         .catch(e =>{
         	var paragraph = new PARAGRAPH(syntax[0].sentences,syntax[0].tokens, {}).sentences;
-			
+
         	res.send(JSON.stringify({"treeData": paragraph}));
         });
     })
@@ -1283,49 +1079,6 @@ app.get('/googleEntities',function(req,res){
     });
 });
 
-app.get('/IBMWatson', function(req,res){
-  var headers = {
-      'Content-Type': 'application/json'
-  };
-  var dataString = {
-    "text": req.query.text,
-    "features": {
-      "sentiment": {},
-      "keywords": {
-        "sentiment": true
-      }
-    }
-  };
-  var options = {
-      url: 'https://gateway.watsonplatform.net/natural-language-understanding/api/v1/analyze?version=2017-02-27',
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(dataString),
-      auth: {
-          'user': 'bb64a147-f9f3-4579-85da-8f155815970f',
-          'pass': 'PrtIjxa8sGTB'
-      }
-  };
-  function callback(error, response, body) {
-      if (!error && response.statusCode == 200) {
-          var watsy = JSON.parse(body);
-          var respuesta= {};
-          respuesta.score = watsy.sentiment.document.score;
-          respuesta.keyScores = [];
-          for (let x=0;watsy.keywords[x]!=undefined;x++){
-            respuesta.keyScores.push({
-              key: watsy.keywords[x].text,
-              value: watsy.keywords[x].sentiment.score});
-          }
-          res.send(JSON.stringify(respuesta));
-      }
-      else{
-          res.send(JSON.stringify({score:0, keyScores:[]}));
-      }
-  }
-  request(options, callback);
-});
-
 
 app.get('/genQuestion', function(req,res) {
 
@@ -1341,63 +1094,103 @@ app.get('/genQuestion', function(req,res) {
   var answers = JSON.parse(req.query.answers);
 
   var words = JSON.parse(req.query.words);
+	var keyWords = '';
+	for (var key in words) {
+		for (var x = 0; x<words[key].length;x++) {
+			keyWords+=words[key][x] + ' '
+		}
+	}
+	GoogleNLP
+ .analyzeSyntax({document: {
+		 content: keyWords,
+		 type: 'PLAIN_TEXT',
+ 		}})
+	 .then(results => {
+		 var c = 0;
+	 	for (var key in words) {
+	 		for (var x = 0; x<words[key].length;x++) {
+				words[key][x] = results[0].tokens[c].lemma;
+				c++;
+			}
+		}
+	  var forWrite={
+	  	"questionID": "",
+	  	"text": "",
+	  	"answers": [],
+	  	"keyWords":[]
+	  };
 
+	  var ansM= new AnswersManager(googleApiManager);
 
-  console.log(req.query);
-  var forWrite={
-  	"questionID": "",
-  	"text": "",
-  	"answers": [],
-  	"keyWords":[]
-  };
+	  fileManager.readFile(function(result){
+	  	if (result){
+	  		forWrite["questionID"]= fileManager.fileData.Questions.length;
+	  		forWrite["text"]= req.query.question;
+	  		ansM.getTreeForAnswers(answers, 0 ,answersTrees, ansM.getEnvironment() ,function(response,trees){
+					let entityCounter = {};
+					let isEntity = (token, entities) => {
+						let itIs=false;
+						for (var key in entities) {
+							for (var synonym in entities[key]) {
+								if (entities[key][synonym] === token.lemma){
+									itIs=true;
+									entityCounter[key] = true;
+								}
+							}
+						}
+						for (var modifier in token.modifiers) {
+							if(isEntity(token.modifiers[modifier],entities))
+								itIs=true;
+						}
+						return itIs;
+					}
+	  			if (response){
+						for (var paragraph in trees){
+							var valid = false;
+							for (var sentence in trees[paragraph]){
+								if (trees[paragraph][sentence].valid==-1){
+									res.send(JSON.stringify({"success":false,"Questions": [], "Error": `"${trees[paragraph][sentence].sentence}" is not a complex sentence`} ));
+									return;
+								}
+								if(isEntity(trees[paragraph][sentence].root, words)){
+									valid = true;
+									break;
+								}
+							}
+							if(!valid){
+								res.send(JSON.stringify({"success":false,"Questions": [], "Error": 'All Answers must mention at least one Entity from the entity list'} ));
+								return;
+							}
+						}
+	  				forWrite.answers= trees;
+	  				for( var key in words){
+							if(!entityCounter[key]){
+								res.send(JSON.stringify({"success":false,"Questions": [], "Error": `Entity "${key}" is not used in any answer`} ));
+							}
+			  			forWrite.keyWords.push(words[key]);
+			  		}
 
-  var ansM= new AnswersManager(googleApiManager);
+			  		fileManager.fileData.Questions.push(forWrite);
+					 	fileManager.writeInFile(function(resp){
 
-  fileManager.readFile(function(result){
-  	if (result){
+					 	if (resp){
 
+					 		res.send(JSON.stringify({"success":true,"Questions": fileManager.getQuestionsInMemory()} ));
+					 	}
+					 	else{
+					 		res.send(JSON.stringify({"success":false,"Questions": [], "Error": 'Not resp'} ));
+					 	}
+					 });
+	  			}
 
+	  			else{
+	  				res.send(JSON.stringify({"success":false,"Questions": [], "Error": 'Not response'} ));
+	  			}
 
-  		forWrite["questionID"]= fileManager.fileData.Questions.length;
-  		forWrite["text"]= req.query.question;
-
-  		ansM.getTreeForAnswers (answers, 0 ,answersTrees, ansM.getEnvironment() ,function(response,trees){
-
-  			if (response){
-
-  				forWrite.answers= trees;
-  				for( var key in words){
-		  		forWrite.keyWords.push(words[key]);
-		  		}
-
-		  		fileManager.fileData.Questions.push(forWrite);
-
-
-
-				 fileManager.writeInFile(function(resp){
-
-				 	if (resp){
-
-				 		res.send(JSON.stringify({"success":true,"Questions": fileManager.getQuestionsInMemory()} ));
-				 	}
-				 	else{
-				 		res.send(JSON.stringify({"success":false,"Questions": []} ));
-				 	}
-				 });
-  			}
-
-  			else{
-  				res.send(JSON.stringify({"success":false,"Questions": []} ));
-  			}
-
-  		});
-
-
-  	}
-
-  });
-
-
+	  		});
+	  	}
+	  });
+	});
 })
 
 
@@ -1425,19 +1218,19 @@ app.get('/isCorrectAnswer',function(req,res){
 
 	fileManager.getQuestionById(req.query.questionID ,function(questionData,result){
 
-		if (result) {
+		if (result){
 
 			//parse response ang get data
+			console.log(req.query.answer);
 			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
-				if (response) {
-					
+				if (response){
 					var answer= new Answer(questionData.questionID,1,trees[0]);
 
 					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
 
 					console.log("\n \n Iniciando comparación de respuestas \n \n ");
 
-					var tr= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0]);
+					var tr= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0],fileManager.fileData.Questions[req.query.questionID].keyWords);
 					resp= tr.initComparison();
 					console.log("\n \n cantidad de coincidencias \n \n ");
 					console.log("--- "+ tr.coincidences+" \n \n");
@@ -1453,7 +1246,7 @@ app.get('/isCorrectAnswer',function(req,res){
 				}
 			});
 
-		
+
 		}
 
 
@@ -1465,11 +1258,9 @@ app.get('/isCorrectAnswer',function(req,res){
 
 })
 
-
 console.log("\n "+ "Numero redondeado"+" \n ");
 console.log(Math.round(6* 0.60));
 console.log("\n\n");
-
 
 var server = app.listen(8081, function ()
 {

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { labels, keyWords } from './google.syntax';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Router } from '@angular/router';
-import {MatSnackBar} from '@angular/material';
+import { MatSnackBar } from '@angular/material';
 
 @Component({
   selector: 'app-main',
@@ -38,9 +38,13 @@ export class MainComponent implements OnInit {
   JSON = JSON;
   Object = Object;
   console = console;
-  constructor(private http: HttpClient, private sanitizer: DomSanitizer, private router: Router, private snackBar: MatSnackBar) {
+  constructor(private http: HttpClient,
+              private sanitizer: DomSanitizer,
+              private router: Router,
+              private snackBar: MatSnackBar) {
     this.getQuestions();
   }
+
   count(list) {
     let x = 0;
     while (list !== undefined && list[x] !== undefined) {
@@ -53,11 +57,16 @@ export class MainComponent implements OnInit {
 
   addEntity() {
     const entity = document.getElementById('entityName')['value'];
-    if (entity === '') {
+    const word = (/^\S+$/gm);
+    if (!word.test(entity)) {
+      this.openSnackBar('Must Be a Single Word', 'ok');
       return;
+    } else {
+      document.getElementById('entityName')['value'] = '';
+      this.questionGen['synonymsIndex'] = undefined;
+      this.questionGen['entityIndex'] = undefined;
+      this.questionGen.keyWords[entity] = this.questionGen.keyWords[entity] ? this.questionGen.keyWords[entity] : [entity];
     }
-    document.getElementById('entityName')['value'] = '';
-    this.questionGen.keyWords[entity] = this.questionGen.keyWords[entity] ? this.questionGen.keyWords[entity] : [entity];
   }
   delEntity() {
     delete this.questionGen.keyWords[this.questionGen['entityIndex']];
@@ -67,20 +76,40 @@ export class MainComponent implements OnInit {
     this.questionGen.keyWords[this.questionGen['entityIndex']].splice(this.questionGen['synonymsIndex'], 1);
     delete this.questionGen['synonymsIndex'];
   }
-  delQuestion() {
-    delete this.questionGen.answers[this.questionGen['answerIndex']];
+  delAnswer() {
+    this.questionGen.answers.splice(this.questionGen['answerIndex'], 1);
     delete this.questionGen['answerIndex'];
   }
 
   getQuestions() {
     this.http.get(`${this.server}getQuestions`).subscribe((res: any) => {
       if (res.success) {
-        console.log(JSON.stringify(res));
         this.questionList = <any>res.Questions;
       }
     });
   }
-
+  checkEmpty (text) {
+    const empty = (/\w*[a-zA-Z]\w*/gm);
+    return empty.test(text);
+  }
+  checkSynonym() {
+    const wordRegex = (/^\S+$/gm);
+    const synonym = this.questionGen.keyWords[this.questionGen['entityIndex']][this.questionGen['synonymsIndex']];
+    const pass = wordRegex.test(synonym);
+    if (!pass) {
+        return pass;
+    }
+    let counter = 0;
+    Object.keys(this.questionGen.keyWords)
+    .forEach(key => {
+      this.questionGen.keyWords[key].forEach(word => {
+        if ( word === synonym ) {
+          counter++;
+        }
+      });
+    });
+    return counter === 1;
+  }
   generate() {
     if (this.validateQuestion()) {
       this.http.get(`${this.server}genQuestion`,
@@ -91,8 +120,9 @@ export class MainComponent implements OnInit {
       }}).subscribe((res: any) => {
         if (res.success) {
           this.questionList = <any>res.Questions;
+          this.openSnackBar('Success!', 'Ok');
         } else {
-          this.openSnackBar('Request Failed', 'Ok');
+          this.openSnackBar(`Request Failed: ${res.Error}`, 'Ok');
         }
       });
     } else {
@@ -100,10 +130,23 @@ export class MainComponent implements OnInit {
     }
   }
 
+  answer() {
+    this.procs.push(0);
+    this.http.get(`${this.server}isCorrectAnswer`,
+      {params: {answer: this.texto, questionID: this.questionIndex}})
+      .subscribe((res: any) => {
+        if (res.success) {
+          console.log(res.AnswerData);
+          this.openSnackBar(`Answer Score: ${res.AnswerData.finalGrade}`, 'Nice');
+          this.procs.pop();
+        } else {
+          this.procs.pop();
+        }
+      });
+  }
   openSnackBar(message: string, action: string) {
-    console.log(this.snackBar);
     this.snackBar.open(message, action, {
-      duration: 2000,
+      duration: 5000,
     });
   }
 
