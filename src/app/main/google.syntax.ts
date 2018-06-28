@@ -1,7 +1,5 @@
 // tslint:disable:max-line-length
-export const keyWords = [
-  'Angular'
-];
+
 export const labels = {
     UNKNOWN: `Unknown relationship`,
     ABBREV: `An abbreviation of the head token.
