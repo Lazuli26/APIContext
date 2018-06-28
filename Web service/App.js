@@ -329,7 +329,7 @@ class TOKEN {
     }
 
 	isEntity(entityList){
-		
+
 		if(this.entity !=undefined){
 				return true;
 			}
@@ -343,19 +343,19 @@ class TOKEN {
 			return false;
 	}
 
-	
+
 
 	isEquivalent(token, entityList){
-		
+
 		if(stringSimilarity.compareTwoStrings(this.lemma, token.lemma ) >= 0.75 ){
-			
+
 			return true;
 		}
 		for(var x in entityList){
 			let me = false;
 			let him = false;
 			for (var y in entityList[x]){
-				
+
 				if (stringSimilarity.compareTwoStrings(this.lemma, entityList[x][y] )>= 0.75)
 					me= true;
 				if (stringSimilarity.compareTwoStrings( token.lemma, entityList[x][y] )>= 0.75)
@@ -387,9 +387,9 @@ class TOKEN {
 		}
 
 		return relevant;
-	
+
 	}
-	
+
 
     print(tab){
         console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
@@ -547,20 +547,20 @@ class TreeAnalyzer {
 		var entityAppearances=[];
 		for (let i=0; i < limit; i++) {
 
-			if (userAnswer[i].valid===this.validSentence ){ //if the sentences has a valid format 
+			if (userAnswer[i].valid===this.validSentence ){ //if the sentences has a valid format
 
 				//console.log("iniciando análsis de tokens \n \n ");
 				entityAppearances=this.analyzeTokens(userAnswer[i].root,entityToken,entityAppearances);
 
 			}
-			
+
 		}
 
 		return entityAppearances;
 
 	}
 
-	
+
 	analyzeModifiers(modifiers,answerToken,entityAppearances) {
 
 		var limit= modifiers.length;
@@ -575,7 +575,7 @@ class TreeAnalyzer {
 
 	}
 
-	
+
 	analyzeTokens(currentToken,answerToken, entityAppearances){
 
 		if ( currentToken.isEquivalent( answerToken , this.entityList) ){
@@ -583,7 +583,7 @@ class TreeAnalyzer {
 
 			entityAppearances.push(currentToken);
 		}
-		
+
 		if (currentToken.hasOwnProperty("modifiers") && currentToken.modifiers!= undefined){
 			entityAppearances =this.analyzeModifiers(currentToken.modifiers,answerToken, entityAppearances);
 		}
@@ -595,7 +595,7 @@ class TreeAnalyzer {
 }
 
 /*
- Then modify that class for make it able to control the ase in when a keyword appears many times, 
+ Then modify that class for make it able to control the ase in when a keyword appears many times,
  because it could alter counters for answer entities and others
 */
 class AnswersComparator {
@@ -636,7 +636,7 @@ class AnswersComparator {
 
 	}
 
-	
+
 	getSimilarTokenInModifiers(token, modifiers,entityList){
 
 			var limit=modifiers.length;
@@ -653,7 +653,7 @@ class AnswersComparator {
 
 	// return an score that set how similar are both token modifiers,, based on tokenOneModifiers
 	getTokensModifiersCoincidenceDegree(tokenOneModifiers,expectedModifiers){
-			
+
 		if ( expectedModifiers.length === 0 ) {
 
 			return 1; //100% coincidence degree
@@ -696,7 +696,7 @@ class AnswersComparator {
 		}
 	}
 
-	
+
 
 	/*
 	analyze entity appearances in user answer
@@ -724,7 +724,7 @@ class AnswersComparator {
 		for (let i=0; i < limit; i++){
 		//compare part of speech
 			parentsPartOfSpeechCoincidence = this.compareTokensPartOFSpeech(answerToken,appearancesList[i],true);
-			
+
 			console.log("\n appearancesList at postion: "+ i+ " -- text: "+ appearancesList[i] +"\n");
 			console.log("Similitud entre padres (partOfSpeech): "+ parentsPartOfSpeechCoincidence+"\n");
 			// get relevant modifiers of token ah the position i
@@ -751,19 +751,19 @@ class AnswersComparator {
 			console.log("grado total de coincidencia: "+ (this.getEquivalentPercentage(parentsPartOfSpeechWeight, parentsPartOfSpeechCoincidence) +this.getEquivalentPercentage(modifiersCoincidenceWeight,modifierComparisonCoincidence)) + " \n");
 
 			coincidenceDegree= this.getEquivalentPercentage(parentsPartOfSpeechWeight, parentsPartOfSpeechCoincidence) +this.getEquivalentPercentage(modifiersCoincidenceWeight,modifierComparisonCoincidence);
-			
+
 			if (coincidenceDegree > greaterCoincidenceDegree){
 
 				greaterCoincidenceDegree = coincidenceDegree;
 			}
-			
+
 		}
 
 		return greaterCoincidenceDegree;
 	}
 
 	analyzeModifiers(modifiers,data) {
-		
+
 		var limit= modifiers.length;
 		var score=0;
 		for(let i=0; i < limit; i++)
@@ -771,27 +771,27 @@ class AnswersComparator {
 			this.analyzeTokens(this.generateNewToken(modifiers[i]),data);
 		}
 
-		
+
 	}
 
 
 	analyzeTokens(token,data) {
-		
+
 		//if token is an entity or keyword
-		if (token.isEntity(this.entityList)) { 
-			
+		if (token.isEntity(this.entityList)) {
+
 			if (token.visited===false){
 				data.answerEntities+=1;
 				token.visited=true;
-				
+
 			}
 
 
 			// search answer token in user answer
 			var  appearancesList = this.treeAnalyzer.searchEntityInAnswer(token, this.userAnswer,this.entityList);
 
-			if ( appearancesList.length >0 ){ 
-				
+			if ( appearancesList.length >0 ){
+
 				//console.log("\n \n cantidad de apariciones: "+ appearancesList.length+ " \n \n");
 				var result= this.AnalyzeEntityAppearances(token,appearancesList);
 				data.amountPercentage+=result;
@@ -801,12 +801,12 @@ class AnswersComparator {
 					console.log("\n coincidió: "+ token.text + "\n");
 					//increase entity coincidence value in the asnwer JSON response
 					data.entitiesCoincidence+=1;
-					
+
 				}
 			}
 
 		}
-		
+
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			  this.analyzeModifiers(token.modifiers,data);
 		}
@@ -854,7 +854,7 @@ class AnswersComparator {
 				this.analyzeTokens(this.generateNewToken(this.answers[i][j].root),answerComparisonData);
 
 			}
-		
+
 			//average of coincidence amount percentage and expected asnwer entities number
 			answerComparisonData.coincidenceDegree=answerComparisonData.amountPercentage/ answerComparisonData.answerEntities ;
 			if (answerComparisonData.coincidenceDegree < this.coincidenceFactor){
@@ -863,7 +863,7 @@ class AnswersComparator {
 
 			//add to the answer comparison stadistics
 			this.coincidenceWithAnswers.push(answerComparisonData);
-			
+
 
 		}
 
@@ -996,7 +996,7 @@ class AnswerChecker {
 	getFinalScore() {
 
 		return (this.gottenPoints / this.totalPoints) *100;
-	
+
 	}
 
 	isCorrectAnswer(){
@@ -1369,7 +1369,7 @@ app.get('/isCorrectAnswer',function(req,res) {
 })
 
 
-app.get('/isCorrectAnswerAdvancer',function(req,res){
+app.get('/isCorrectAnswerAdvanced',function(req,res){
 
 	console.log("Atendiendo peticion");
 	var googleApiManager = new GoogleApiManager(GoogleNLP);
@@ -1384,14 +1384,14 @@ app.get('/isCorrectAnswerAdvancer',function(req,res){
 				if (response){
 					var answer= new Answer(questionData.questionID,1,trees[0]);
 
-	
+
 					console.log("\n \n Iniciando comparación de respuestas \n \n ");
-					
+
 					var tr= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0],questionData.keyWords);
 					resp= tr.initComparison();
 
 
-					res.send(JSON.stringify({"success":true, 
+					res.send(JSON.stringify({"success":true,
 										"coincidenceWithAnswers": tr.coincidenceWithAnswers}));
 				}
 

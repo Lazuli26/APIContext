@@ -23,6 +23,7 @@
             <mat-spinner *ngIf="processsing" [diameter]="30" style="height:40px;margin-right:10px"></mat-spinner>
             <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="!processsing" [disabled]="!checkEmpty(texto)" style="margin-right:10px">Analyze</button>
             <button mat-raised-button color="primary" (click) = "answer()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer</button>
+            <button mat-raised-button color="primary" (click) = "answerAdvanced()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer Advanced</button>
           </div>
         </mat-card-content>
       </mat-card>

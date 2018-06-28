@@ -126,7 +126,7 @@ export class MainComponent implements OnInit {
       this.openSnackBar('You need to set a question and at least 1 answer and 1 entity', 'Ok');
     }
   }
-  // Para responder una pregunta en el servidor
+  // Para responder una pregunta en el servidor por palabras clave
   answer() {
   this.processsing = true;
     this.http.get(`${this.server}isCorrectAnswer`,
@@ -135,6 +135,21 @@ export class MainComponent implements OnInit {
         if (res.success) {
           console.log(res.AnswerData);
           this.openSnackBar(`Answer Score: ${res.AnswerData.finalGrade}`, 'Nice');
+          this.processsing = false;
+        } else {
+          this.processsing = false;
+        }
+      });
+  }
+  // Para responder una pregunta por analisis gramatical
+  answerAdvanced() {
+  this.processsing = true;
+    this.http.get(`${this.server}isCorrectAnswerAdvanced`,
+      {params: {answer: this.texto, questionID: this.questionIndex}})
+      .subscribe((res: any) => {
+        if (res.success) {
+          console.log(res.coincidenceWithAnswers);
+          this.openSnackBar(`Check Console for details`, 'Nice');
           this.processsing = false;
         } else {
           this.processsing = false;
