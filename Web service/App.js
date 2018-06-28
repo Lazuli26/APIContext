@@ -1341,35 +1341,21 @@ app.get('/isCorrectAnswer',function(req,res) {
 
 		if (result){
 
-			// backup keywords 
-			var keyWordsResp = questionData.keyWords.slice(0);
-			//parse response ang get data
-		//	console.log(req.query.answer);
 			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
 				if (response){
 					var answer= new Answer(questionData.questionID,1,trees[0]);
 
 					var answerChecker= new AnswerChecker(questionData, answer, interviewLanguage);
 
-					console.log("\n \n Iniciando comparación de respuestas \n \n ");
-					
-					var tr= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0],keyWordsResp);
-					resp= tr.initComparison();
-				//	console.log("\n \n cantidad de coincidencias \n \n ");
-					//console.log("--- "+ tr.coincidences+" \n \n");
-					//console.log(res);
-
 
 					res.send(JSON.stringify({"success":true ,"AnswerData":{"totalScore": answerChecker.totalPoints, "gottenScore": answerChecker.gottenPoints, "finalGrade": answerChecker.getFinalScore() ,
-										"isCorrectAnswer": answerChecker.isCorrectAnswer(), "pendingKeyWords": answerChecker.synonymsList, "mentionedKeyWords": answerChecker.includedKeyWords }, 
-										"coincidenceWithAnswers": tr.coincidenceWithAnswers, "tree": trees[0]}));
+										"isCorrectAnswer": answerChecker.isCorrectAnswer(), "pendingKeyWords": answerChecker.synonymsList, "mentionedKeyWords": answerChecker.includedKeyWords } }));
 				}
 
 				else{
 					res.send(JSON.stringify({"success":false ,"AnswerData":{}}));
 				}
 			});
-
 
 		}
 
@@ -1382,9 +1368,48 @@ app.get('/isCorrectAnswer',function(req,res) {
 
 })
 
-console.log("\n "+ "Numero redondeado"+" \n ");
-console.log(Math.round(6* 0.60));
-console.log("\n\n");
+
+app.get('/isCorrectAnswerAdvancer',function(req,res){
+
+	console.log("Atendiendo peticion");
+	var googleApiManager = new GoogleApiManager(GoogleNLP);
+	var fileManager = new FileManager(fs,'QuestionsData/questions.json');
+	var ansM= new AnswersManager(googleApiManager);
+
+	fileManager.getQuestionById(req.query.questionID ,function(questionData,result){
+
+		if (result){
+
+			ansM.getTreeForAnswers ([req.query.answer], 0 ,[] , ansM.getEnvironment() ,function(response,trees){
+				if (response){
+					var answer= new Answer(questionData.questionID,1,trees[0]);
+
+	
+					console.log("\n \n Iniciando comparación de respuestas \n \n ");
+					
+					var tr= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0],questionData.keyWords);
+					resp= tr.initComparison();
+
+
+					res.send(JSON.stringify({"success":true, 
+										"coincidenceWithAnswers": tr.coincidenceWithAnswers}));
+				}
+
+				else{
+					res.send(JSON.stringify({"success":false ,"coincidenceWithAnswers":{}}));
+				}
+			});
+
+
+		}
+
+
+		else{
+			res.send(JSON.stringify({"success":false ,"coincidenceWithAnswers":{}}));
+		}
+
+	});
+})
 
 var server = app.listen(8081, function ()
 {
