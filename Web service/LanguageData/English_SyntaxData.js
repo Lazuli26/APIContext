@@ -9,6 +9,8 @@ module.exports.DATA = {
 	adv: "ADV",
 	adp: "ADP",
 	prt: "PRT",
-	prtText: "'s"
+	prtText: "'s",
+	adj: "ADJ"
+
 }
 
