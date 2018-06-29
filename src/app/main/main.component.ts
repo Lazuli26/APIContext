@@ -36,7 +36,8 @@ export class MainComponent implements OnInit {
   };
   // Lista de preguntas existentes en el servidor
   private questionList = [];
-  // Definicion de los labels
+  private answerResult;
+  // Definiciones de los labels que retorna Google
   labels = labels;
   JSON = JSON;
   Object = Object;
@@ -149,7 +150,19 @@ export class MainComponent implements OnInit {
       .subscribe((res: any) => {
         if (res.success) {
           console.log(res.coincidenceWithAnswers);
-          this.openSnackBar(`Check Console for details`, 'Nice');
+          this.answerResult = res.coincidenceWithAnswers;
+          const scores = [];
+          let total = 0;
+          for (const sentence of res.coincidenceWithAnswers) {
+            scores.push(sentence.coincidenceDegree);
+          }
+          scores.sort((a, b) => b - a );
+          let remaining = 1;
+          for (let x = 0; x < scores.length; x++) {
+            total += remaining * (scores[x] / (x + 1));
+            remaining = 1 - total;
+          }
+          this.openSnackBar(`Accumulative score: ${total}`, 'Nice');
           this.processsing = false;
         } else {
           this.processsing = false;

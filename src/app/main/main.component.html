@@ -22,8 +22,42 @@
           <div style="display:flex; flex-direction: row;min-height:40px">
             <mat-spinner *ngIf="processsing" [diameter]="30" style="height:40px;margin-right:10px"></mat-spinner>
             <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="!processsing" [disabled]="!checkEmpty(texto)" style="margin-right:10px">Analyze</button>
-            <button mat-raised-button color="primary" (click) = "answer()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer</button>
+            <button mat-raised-button color="primary" (click) = "answer()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))" style="margin-right:10px">Answer</button>
             <button mat-raised-button color="primary" (click) = "answerAdvanced()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer Advanced</button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile *ngIf="answerResult!=undefined">
+      <mat-card style="background-color:#c7b2ff">
+        <mat-card-title>Advanced Answer
+          <mat-form-field style="
+            font-size:12px;
+            display:flex;
+            justify-content:flex-end;
+            align-items:center;
+            width:fit-content">
+            <mat-select placeholder="Possible Answer" [(value)]="answerResult.index">
+              <mat-option *ngFor="let answer of Object.keys(answerResult)" value = {{answer}}>
+                {{answerResult[answer].text}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </mat-card-title>
+        <mat-card-content style="max-height:250px">
+          <div>
+            <span *ngFor="let toke of analysis">
+              <button
+              mat-button
+              *ngIf="(sentence == undefined || toke.sentence==sentence)"
+              matTooltip={{toke.label}}
+              [ngStyle]="{
+                'background-color': (token==undefined || toke.pos!=token.pos)?toke.background:'#7a7a7a',
+                'color': (token==undefined || toke.pos!=token.pos)?toke.contrast:'#c6c6c6'}"
+              class="button-small"
+              (click)="showToken(toke)">
+              {{toke.text}}<mat-icon *ngIf="toke.entity" style="font-size: 8px; width: 18px; height:8px">brightness_1</mat-icon></button>
+            </span>
           </div>
         </mat-card-content>
       </mat-card>
