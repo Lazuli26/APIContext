@@ -393,7 +393,7 @@ class TOKEN {
     	entityList: .lista de listas. donde cada sublista es una palabra clave y sus sinónimos
 	*/
 	isEntity(entityList){
-		
+
 		if(this.entity !=undefined){
 				return true;
 			}
@@ -411,17 +411,18 @@ class TOKEN {
 	/* Propósito: Determinar si el token es equivalente al recibido por parámetro
 	   haciendo uso de la lista de palabras clave, y comparando los lemas de ambos tokens directamente
 	*/
+
 	isEquivalent(token, entityList){
-		
+
 		if(stringSimilarity.compareTwoStrings(this.lemma, token.lemma ) >= 0.75 ){
-			
+
 			return true;
 		}
 		for(var x in entityList){
 			let me = false;
 			let him = false;
 			for (var y in entityList[x]){
-				
+
 				if (stringSimilarity.compareTwoStrings(this.lemma, entityList[x][y] )>= 0.75)
 					me= true;
 				if (stringSimilarity.compareTwoStrings( token.lemma, entityList[x][y] )>= 0.75)
@@ -457,9 +458,9 @@ class TOKEN {
 		}
 
 		return relevant;
-	
+
 	}
-	
+
 
     print(tab){
         console.log(`${'-'.repeat(tab)}${this.text}-${this.label}`);
@@ -632,18 +633,17 @@ class TreeAnalyzer {
 
 			if (userAnswer[i].valid===this.validSentence ){ // si la oración es válida 
 
-
 				entityAppearances=this.analyzeTokens(userAnswer[i].root,entityToken,entityAppearances);
 
 			}
-			
+
 		}
 
 		return entityAppearances;
 
 	}
 
-	
+
 	analyzeModifiers(modifiers,answerToken,entityAppearances) {
 
 		var limit= modifiers.length;
@@ -658,11 +658,13 @@ class TreeAnalyzer {
 
 	}
 
+
 	/* 
 	Propósito: Comparar el token de la respuesta esperada, con el token actual de la respuesta del usuario. Recorrer los modifiers del token
 	de la respuesta del usuario
 	
 	*/
+
 	analyzeTokens(currentToken,answerToken, entityAppearances){
 
 		if ( currentToken.isEquivalent( answerToken , this.entityList) ){
@@ -670,7 +672,7 @@ class TreeAnalyzer {
 			// agregar el token a la lista de apariciones
 			entityAppearances.push(currentToken);
 		}
-		
+
 		if (currentToken.hasOwnProperty("modifiers") && currentToken.modifiers!= undefined){
 			entityAppearances =this.analyzeModifiers(currentToken.modifiers,answerToken, entityAppearances);
 		}
@@ -688,8 +690,13 @@ Próposito: Una clase para comparar las posibles resupestas para una pregunta co
 
 ****************************************************************************************/
 /*
+<<<<<<< HEAD
  Luego, modificar esta clase para hacer que pueda controlar cuando una keyWord ( entidad) aparece muchas veces
  porque eso podría alterar los contadores para las entidades de las respuestas.
+=======
+ Then modify that class for make it able to control the ase in when a keyword appears many times,
+ because it could alter counters for answer entities and others
+>>>>>>> a10845def514c2b645236692a9b0987864df5c56
 */
 class AnswersComparator {
 
@@ -731,10 +738,12 @@ class AnswersComparator {
 
 	}
 
+
 	/*
 	Propósito: Buscar el token recibido por parámetro, en la lista de modificadores del token
 	Nota: al obtener los datos de la pregunta del archivo .json, se debe hacer un objeto token para acceder a los métodos de la clase
 	*/
+
 	getSimilarTokenInModifiers(token, modifiers,entityList){
 
 			var limit=modifiers.length;
@@ -750,7 +759,7 @@ class AnswersComparator {
 
 	// Retorna un valor númerico que establece que tan similar son los modificadores de ambos tokens, 
 	getTokensModifiersCoincidenceDegree(tokenOneModifiers,expectedModifiers){
-			
+
 		if ( expectedModifiers.length === 0 ) {
 
 			return 1; //100% coincidence degree
@@ -796,7 +805,7 @@ class AnswersComparator {
 		}
 	}
 
-	
+
 
 	/*
 	Propósito: Analiza las apariciones del token en la respuesta del usuario
@@ -825,7 +834,7 @@ class AnswersComparator {
 		for (let i=0; i < limit; i++){
 		//compare part of speech
 			parentsPartOfSpeechCoincidence = this.compareTokensPartOFSpeech(answerToken,appearancesList[i],true);
-			
+
 			console.log("\n appearancesList at postion: "+ i+ " -- text: "+ appearancesList[i] +"\n");
 			console.log("Similitud entre padres (partOfSpeech): "+ parentsPartOfSpeechCoincidence+"\n");
 			// get relevant modifiers of token ah the position i
@@ -852,12 +861,12 @@ class AnswersComparator {
 			console.log("grado total de coincidencia: "+ (this.getEquivalentPercentage(parentsPartOfSpeechWeight, parentsPartOfSpeechCoincidence) +this.getEquivalentPercentage(modifiersCoincidenceWeight,modifierComparisonCoincidence)) + " \n");
 
 			coincidenceDegree= this.getEquivalentPercentage(parentsPartOfSpeechWeight, parentsPartOfSpeechCoincidence) +this.getEquivalentPercentage(modifiersCoincidenceWeight,modifierComparisonCoincidence);
-			
+
 			if (coincidenceDegree > greaterCoincidenceDegree){
 
 				greaterCoincidenceDegree = coincidenceDegree;
 			}
-			
+
 		}
 
 		return greaterCoincidenceDegree;
@@ -865,7 +874,7 @@ class AnswersComparator {
 
 
 	analyzeModifiers(modifiers,data) {
-		
+
 		var limit= modifiers.length;
 		var score=0;
 		for(let i=0; i < limit; i++)
@@ -873,7 +882,7 @@ class AnswersComparator {
 			this.analyzeTokens(this.generateNewToken(modifiers[i]),data);
 		}
 
-		
+
 	}
 
 
@@ -881,18 +890,18 @@ class AnswersComparator {
 		
 		//si el token de la respuesta es una entidad
 		if (token.isEntity(this.entityList)) { 
-			
 
 			if (token.visited===false){
 				//aumentar el contador de entidades para esta respuesta
 				data.answerEntities+=1;
 				token.visited=true;
-				
+
 			}
 
 
 			// Buscar en la respuesta del usuario, el token actual 
 			var  appearancesList = this.treeAnalyzer.searchEntityInAnswer(token, this.userAnswer,this.entityList);
+
 
 			// si el token aparece en la respuesta del usuario aunque sea una vez
 			if ( appearancesList.length >0 ){ 
@@ -907,12 +916,12 @@ class AnswersComparator {
 
 					//increase entity coincidence value in the asnwer JSON response
 					data.entitiesCoincidence+=1;
-					
+
 				}
 			}
 
 		}
-		
+
 		if (token.hasOwnProperty("modifiers") && token.modifiers!= undefined){
 			  this.analyzeModifiers(token.modifiers,data);
 		}
@@ -974,7 +983,7 @@ class AnswersComparator {
 
 			//agregar a la lista de estadísticas de coincidencia para cada respuesta
 			this.coincidenceWithAnswers.push(answerComparisonData);
-			
+
 
 		}
 
@@ -1111,7 +1120,7 @@ class AnswerChecker {
 	getFinalScore() {
 
 		return (this.gottenPoints / this.totalPoints) *100;
-	
+
 	}
 
 	isCorrectAnswer(){
@@ -1512,7 +1521,7 @@ app.get('/isCorrectAnswer',function(req,res) {
 })
 
 
-app.get('/isCorrectAnswerAdvancer',function(req,res){
+app.get('/isCorrectAnswerAdvanced',function(req,res){
 
 	console.log("Atendiendo peticion");
 	var googleApiManager = new GoogleApiManager(GoogleNLP);
@@ -1527,8 +1536,9 @@ app.get('/isCorrectAnswerAdvancer',function(req,res){
 				if (response){
 					var answer= new Answer(questionData.questionID,1,trees[0]);
 
-	
+
 					console.log("\n \n Iniciando comparación de respuestas \n \n ");
+
 					
 					var ansC= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0],questionData.keyWords);
 					ansC.initComparison();
@@ -1536,6 +1546,7 @@ app.get('/isCorrectAnswerAdvancer',function(req,res){
 
 					res.send(JSON.stringify({"success":true, 
 										"coincidenceWithAnswers": ansC.coincidenceWithAnswers}));
+
 				}
 
 				else{

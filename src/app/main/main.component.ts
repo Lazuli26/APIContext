@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { labels, keyWords } from './google.syntax';
-import { DomSanitizer } from '@angular/platform-browser';
+import { labels } from './google.syntax';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material';
 
@@ -11,53 +10,49 @@ import { MatSnackBar } from '@angular/material';
   styleUrls: ['./main.component.css']
 })
 export class MainComponent implements OnInit {
+  // El campo de texto a analizar
   private texto = '';
+  // La pregunta seleccionada por el usuario
   private questionIndex;
+  // El servidor al que se harán las consultas
   private server = 'http://localhost:8081/';
-  private procs = [];
-  private endpoints = [
-    {route: 'IBMWatson', name: 'Watson[IBM]', color: '#051b75'},
-    {route: 'googleTree', name: 'Google', color: '#558ff1'},
-    {route: 'amazonComprehend', name: 'Amazon', color: '#1b2532'},
-    {route: 'azureCognitiveService', name: 'Azure', color: '#a5ce00'},
-    {route: 'aylienTextApi', name: 'Aylien', color: '#28384e'}
-  ];
+  // Indica si hay algo en proceso
+  private processsing = false;
+  // El resultado del analisis de texto se guarda como una lista en este campo
   private analysis = [];
+  // El resultado del analisis de texto se guarda en forma de arbol en este campo
   private tree;
+  // El token seleccionado por el usuario (para la vista)
   private token;
+  // El label seleccionado para mostrar información
   private label;
+  // Indice para mostrar solo una oración especifica
   private sentence;
+  // Para el generador de preguntas
   private questionGen = {
     question: '',
     answers: [],
     keyWords: {}
   };
+  // Lista de preguntas existentes en el servidor
   private questionList = [];
+  // Definicion de los labels
   labels = labels;
-  keyWords = keyWords;
   JSON = JSON;
   Object = Object;
-  console = console;
   constructor(private http: HttpClient,
-              private sanitizer: DomSanitizer,
               private router: Router,
               private snackBar: MatSnackBar) {
     this.getQuestions();
   }
 
-  count(list) {
-    let x = 0;
-    while (list !== undefined && list[x] !== undefined) {
-      x++;
-    }
-    return x;
-  }
   ngOnInit() {
   }
-
+  // Añade una entidad a la pregunta que se está creando
   addEntity() {
     const entity = document.getElementById('entityName')['value'];
     const word = (/^\S+$/gm);
+    // La entidad debe ser una palabra
     if (!word.test(entity)) {
       this.openSnackBar('Must Be a Single Word', 'ok');
       return;
@@ -72,6 +67,7 @@ export class MainComponent implements OnInit {
     delete this.questionGen.keyWords[this.questionGen['entityIndex']];
     delete this.questionGen['entityIndex'];
   }
+  // Borra un sinonimo para una entidad
   delSynonym() {
     this.questionGen.keyWords[this.questionGen['entityIndex']].splice(this.questionGen['synonymsIndex'], 1);
     delete this.questionGen['synonymsIndex'];
@@ -80,7 +76,7 @@ export class MainComponent implements OnInit {
     this.questionGen.answers.splice(this.questionGen['answerIndex'], 1);
     delete this.questionGen['answerIndex'];
   }
-
+  // Carga las preguntas almacenadas en el servidor
   getQuestions() {
     this.http.get(`${this.server}getQuestions`).subscribe((res: any) => {
       if (res.success) {
@@ -88,16 +84,16 @@ export class MainComponent implements OnInit {
       }
     });
   }
+  // Comprueba si un texto está vacío
   checkEmpty (text) {
     const empty = (/\w*[a-zA-Z]\w*/gm);
     return empty.test(text);
   }
-  checkSynonym() {
+  // Revisa si un sinonimo tiene formato valido y no existe en otra parte
+  checkSynonym(synonym) {
     const wordRegex = (/^\S+$/gm);
-    const synonym = this.questionGen.keyWords[this.questionGen['entityIndex']][this.questionGen['synonymsIndex']];
-    const pass = wordRegex.test(synonym);
-    if (!pass) {
-        return pass;
+    if (!wordRegex.test(synonym)) {
+        return false;
     }
     let counter = 0;
     Object.keys(this.questionGen.keyWords)
@@ -110,6 +106,7 @@ export class MainComponent implements OnInit {
     });
     return counter === 1;
   }
+  // Para generar una pregunta en el servidor
   generate() {
     if (this.validateQuestion()) {
       this.http.get(`${this.server}genQuestion`,
@@ -129,18 +126,33 @@ export class MainComponent implements OnInit {
       this.openSnackBar('You need to set a question and at least 1 answer and 1 entity', 'Ok');
     }
   }
-
+  // Para responder una pregunta en el servidor por palabras clave
   answer() {
-    this.procs.push(0);
+  this.processsing = true;
     this.http.get(`${this.server}isCorrectAnswer`,
       {params: {answer: this.texto, questionID: this.questionIndex}})
       .subscribe((res: any) => {
         if (res.success) {
           console.log(res.AnswerData);
           this.openSnackBar(`Answer Score: ${res.AnswerData.finalGrade}`, 'Nice');
-          this.procs.pop();
+          this.processsing = false;
         } else {
-          this.procs.pop();
+          this.processsing = false;
+        }
+      });
+  }
+  // Para responder una pregunta por analisis gramatical
+  answerAdvanced() {
+  this.processsing = true;
+    this.http.get(`${this.server}isCorrectAnswerAdvanced`,
+      {params: {answer: this.texto, questionID: this.questionIndex}})
+      .subscribe((res: any) => {
+        if (res.success) {
+          console.log(res.coincidenceWithAnswers);
+          this.openSnackBar(`Check Console for details`, 'Nice');
+          this.processsing = false;
+        } else {
+          this.processsing = false;
         }
       });
   }
@@ -149,7 +161,7 @@ export class MainComponent implements OnInit {
       duration: 5000,
     });
   }
-
+  // Valida la pregunta antes de generarla
   validateQuestion() {
     let status = this.questionGen.answers.length > 0 && Object.keys(this.questionGen.keyWords).length > 0;
     if (this.questionGen.question === '') {
@@ -162,40 +174,22 @@ export class MainComponent implements OnInit {
     });
     Object.keys(this.questionGen.keyWords).forEach(key => {
       this.questionGen.keyWords[key].forEach(synonym => {
-        if (synonym === '') {
+        if (!this.checkSynonym(synonym)) {
           status = false;
         }
       });
     });
     return status;
   }
-  readTextFile(file, callback) {
-    const rawFile = new XMLHttpRequest();
-    rawFile.overrideMimeType('application/json');
-    rawFile.open('GET', file, true);
-    rawFile.onreadystatechange = function() {
-        if (rawFile.readyState === 4 && rawFile.status.toString() === '200') {
-            callback(rawFile.responseText);
-        }
-    };
-    rawFile.send(null);
-  }
-
-  loadFile() {
-    this.readTextFile('/Users/Documents/workspace/test.json', function(text) {
-        const data = JSON.parse(text);
-        console.log(data);
-    });
-  }
+  // Para realizar el analisis de texto
   checkText() {
+    // Reinicia las variables
     this.label = undefined;
     this.tree = undefined;
     this.sentence = undefined;
     this.token = undefined;
     this.analysis = [];
-    this.procs = [];
-    this.procs.push(0);
-    this.texto = this.capKeyWords(this.texto);
+    this.processsing = true;
     this.http.get(`${this.server}googleTree`,
       {params: {text: this.texto}}).
       subscribe(res => {
@@ -209,24 +203,16 @@ export class MainComponent implements OnInit {
           });
         }
         this.tree = res['treeData'];
-        this.procs.pop();
+        this.processsing = false;
       });
   }
-  capKeyWords(texto: string): string {
-    return texto.replace(/\w+/g, (word: string) => {
-      for (let x = 0; x < this.keyWords.length; x++) {
-        if (this.keyWords[x].toLowerCase() === word.toLowerCase()) {
-          return this.keyWords[x];
-        }
-      }
-      return word;
-    });
-  }
+  // Para muestra de un token en la interfaz
   showToken(token) {
     this.label = undefined;
     this.token = token;
     this.token.keys = Object.keys(token.partOfSpeech);
   }
+  // Convierte una cadena de texto a color
   stringToColour(str) {
     let hash = 0;
     for (let x = 0; x < str.length; x++) {
@@ -241,6 +227,7 @@ export class MainComponent implements OnInit {
     }
     return colour;
   }
+  // Contrasta un color con el blanco o el negro
   contrast(hex) {
     const threshold = 130;
     const hRed = hexToR(hex);
@@ -254,7 +241,7 @@ export class MainComponent implements OnInit {
     const cBrightness = ((hRed * 299) + (hGreen * 587) + (hBlue * 114)) / 1000;
     if (cBrightness > threshold) {return '#000000'; } else { return '#FFFFFF'; }
     }
-
+  // Recibe la raiz de un arbol, la recorre y genera una lista con todos los nodos
   flatten(root, sentence): Array<Object> {
     let response = [];
     response.push({

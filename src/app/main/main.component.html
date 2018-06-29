@@ -20,9 +20,10 @@
             </mat-form-field>
           </div>
           <div style="display:flex; flex-direction: row;min-height:40px">
-            <mat-spinner *ngFor="let proc of procs" [diameter]="30" style="height:40px;margin-right:10px"></mat-spinner>
-            <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="procs.length==0" [disabled]="!checkEmpty(texto)" style="margin-right:10px">Analyze</button>
-            <button mat-raised-button color="primary" (click) = "answer()" *ngIf="procs.length==0" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer</button>
+            <mat-spinner *ngIf="processsing" [diameter]="30" style="height:40px;margin-right:10px"></mat-spinner>
+            <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="!processsing" [disabled]="!checkEmpty(texto)" style="margin-right:10px">Analyze</button>
+            <button mat-raised-button color="primary" (click) = "answer()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer</button>
+            <button mat-raised-button color="primary" (click) = "answerAdvanced()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer Advanced</button>
           </div>
         </mat-card-content>
       </mat-card>
@@ -195,7 +196,7 @@
                   <mat-form-field style="width: 40%">
                     <input matInput placeholder="Synonym" [disabled]="questionGen.synonymsIndex==0" [(ngModel)]="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]">
                   </mat-form-field>
-                  <mat-icon *ngIf="!checkSynonym()" style="font-size: 18px; color:#f7c613">warning</mat-icon>
+                  <mat-icon *ngIf="!checkSynonym(questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex])" style="font-size: 18px; color:#f7c613">warning</mat-icon>
                 </span>
               </div>
               <div>
