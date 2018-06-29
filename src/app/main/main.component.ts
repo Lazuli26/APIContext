@@ -53,9 +53,21 @@ export class MainComponent implements OnInit {
   addEntity() {
     const entity = document.getElementById('entityName')['value'];
     const word = (/^\S+$/gm);
+    let counter = 0;
+    Object.keys(this.questionGen.keyWords)
+    .forEach(key => {
+      this.questionGen.keyWords[key].forEach(synonym => {
+        if ( synonym === entity ) {
+          counter++;
+        }
+      });
+    });
     // La entidad debe ser una palabra
     if (!word.test(entity)) {
       this.openSnackBar('Must Be a Single Word', 'ok');
+      return;
+    } else if ( counter !== 0) {
+      this.openSnackBar(`"${entity}" already exists`, 'ok');
       return;
     } else {
       document.getElementById('entityName')['value'] = '';
@@ -154,15 +166,25 @@ export class MainComponent implements OnInit {
           const scores = [];
           let total = 0;
           for (const sentence of res.coincidenceWithAnswers) {
-            scores.push(sentence.coincidenceDegree);
+            scores.push(sentence);
           }
-          scores.sort((a, b) => b - a );
+          scores.sort((a, b) => b.coincidenceDegree - a.coincidenceDegree );
           let remaining = 1;
+          const used = [];
           for (let x = 0; x < scores.length; x++) {
-            total += remaining * (scores[x] / (x + 1));
+            let unique = 0;
+            for (const keyWord of scores[x].coincidenceList) {
+              if (!used.includes(keyWord)) {
+                used.push(keyWord);
+                unique++;
+              }
+            }
+            const coincidences = scores[x].coincidenceList.length === 0 ? 1 : scores[x].coincidenceList.length;
+            total += remaining * (scores[x].coincidenceDegree * (unique / coincidences));
             remaining = 1 - total;
           }
-          this.openSnackBar(`Accumulative score: ${total}`, 'Nice');
+          this.answerResult.accumulative = total * 100;
+          this.openSnackBar(`Accumulative score: ${total * 100}`, 'Nice');
           this.processsing = false;
         } else {
           this.processsing = false;
@@ -239,6 +261,11 @@ export class MainComponent implements OnInit {
       colour += ('00' + value.toString(16)).substr(-2);
     }
     return colour;
+  }
+  getGreenToRed(percent) {
+    const r = percent < 50 ? 255 : Math.floor(255 - (percent * 2 - 100) * 255 / 100);
+    const g = percent > 50 ? 255 : Math.floor((percent * 2 ) * 255 / 100);
+    return 'rgb(' + r + ',' + g + ',0)';
   }
   // Contrasta un color con el blanco o el negro
   contrast(hex) {
