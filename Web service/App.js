@@ -958,8 +958,6 @@ class AnswersComparator {
 			// recorrer las oraciones de la respuesta
 			for(let j= 0; j< sentences; j++){
 
-				console.log("\n comparando con respuesta \n");
-				console.log("\n" + this.answers[i][j].sentence +"\n");
 				answerComparisonData.text +=  this.answers[i][j].sentence + " ";
 				this.analyzeTokens(this.generateNewToken(this.answers[i][j].root),answerComparisonData);
 
