@@ -48,7 +48,7 @@ Proposito: Controlar la lectura y escritura en el archivo donde se almacenan las
 Atributos:
 	fileStream: una instancia de fs (paquete para manejar archivos)
 	filePath:
-	fileData: Para alamcenar el contenido del archivo que es leído, o que será escrito 
+	fileData: Para alamcenar el contenido del archivo que es leído, o que será escrito
 ***********************************************************/
 class FileManager{
 	constructor(fileStream, filePath){
@@ -99,7 +99,7 @@ class FileManager{
 
 	}
 
-	// obtiene las preguntas almacenadas en fileData, luego de que el archivo ha sido leído	
+	// obtiene las preguntas almacenadas en fileData, luego de que el archivo ha sido leído
 	getQuestionsInMemory(){
 		var limit = this.fileData.Questions.length;
 		var questions = [];
@@ -148,10 +148,8 @@ class FileManager{
 /***************************************************************************************
 Próposito: Obtener para una lista de respuestas el árbol gramatical de cada una
 			utilizando el API de gogle
-
 Atributos:
 	googleApiManager: Una instancia del objeto que permite consumir el API de google
-	
 ****************************************************************************************/
 class AnswersManager {
 	constructor(googleApiManager){
@@ -225,7 +223,7 @@ class AnswersManager {
 		        		//dar formato al JSON retornado por el API. Cada entidad contendrá en su diccionario la clave "entity"
 		        		var answerTree= new PARAGRAPH(syntaxData[0].sentences,syntaxData[0].tokens, entities).sentences;
 
-		        		answersTrees.push(answerTree); 
+		        		answersTrees.push(answerTree);
 
 		        		index+=1;
 
@@ -236,7 +234,7 @@ class AnswersManager {
 		        	}
 		        	else
 		        	{
-						
+
 		        		return callback(false,[]);
 		        	}
 
@@ -254,11 +252,9 @@ class AnswersManager {
 
 /***************************************************************************************
 Próposito: Encapsular los métodos que permiten utilizar los servicios del Api de google
-
 Atributos:
 	googleNLP: instancia del paquete para utilizar el API
 	Document: Establecer el tipo de entrada(texto plano / archivo) para los servicios de google
-	
 ****************************************************************************************/
 class GoogleApiManager {
 
@@ -306,9 +302,7 @@ class GoogleApiManager {
 
 /***************************************************************************************
 Próposito: Encapsular todas las propiedades que google le asigna a cada palabra en una clase
-
 Atributos:
-	
 ****************************************************************************************/
 
 class TOKEN {
@@ -321,7 +315,7 @@ class TOKEN {
         this.label = label;
         this.partOfSpeech = partOfSpeech;
         this.lemma = lemma;
-        
+
         // lista de tokens que representan palabras que afectan el significado de la palabra
         this.modifiers = [];
 
@@ -395,19 +389,19 @@ class TOKEN {
 	isEntity(entityList){
 
 		if(this.entity !=undefined){
-				return true;
+				return this.lemma;
 			}
 
 			for(var x in entityList){
 				for (var y in entityList[x]){
 					if (stringSimilarity.compareTwoStrings(this.lemma, entityList[x][y] )>= 0.75)
-						return true;
+						return entityList[x][0];
 				}
 			}
 			return false;
 	}
 
-	
+
 	/* Propósito: Determinar si el token es equivalente al recibido por parámetro
 	   haciendo uso de la lista de palabras clave, y comparando los lemas de ambos tokens directamente
 	*/
@@ -487,7 +481,6 @@ class SENTENCE {
 
 /***************************************************************************************
 Próposito: Verificar la validéz de una oración con base en sustantivos, pronombres, verbos y otros tipos de palabras
-
 Atributos:
 	syntaxData
 ****************************************************************************************/
@@ -538,7 +531,7 @@ class sentenceChecker {
 	// Propósito: Actualizar los contadores a partir del token en la posición que indica el índice.
 	updateValues(tokenList,index){
 
-		if (tokenList[index].partOfSpeech.tag=== interviewLanguage.prt || tokenList[index].text.content=== interviewLanguage.prtText){
+		if (tokenList[index].partOfSpeech.tag=== interviewLanguage.prt && tokenList[index].text.content=== interviewLanguage.prtText){
 			this.checkForPrt(tokenList,index);
 		}
 
@@ -560,6 +553,8 @@ class sentenceChecker {
 
 	// 0 = oración válida, -1= Oración inválida
 	isValid() {
+
+    console.log(this.syntaxData);
 		if (this.syntaxData.validFormat===false){
 			return -1;
 		}
@@ -567,7 +562,7 @@ class sentenceChecker {
 			return 0;
 
 		}
-		else if (this.syntaxData.verbs===0){ 
+		else if (this.syntaxData.verbs===0){
 			if (this.syntaxData.nouns_prons > 0 &&  this.syntaxData.others >0){
 				return 0;
 			}
@@ -622,7 +617,7 @@ class TreeAnalyzer {
 		this.entityList=[];
 	}
 
-	// Propósito: Retornar una lista con las apariciones (tokens) en la respuesta del usuario que sean equivalentes al token recibido por parámetro 
+	// Propósito: Retornar una lista con las apariciones (tokens) en la respuesta del usuario que sean equivalentes al token recibido por parámetro
 	searchEntityInAnswer (entityToken, userAnswer,entities) {
 		this.entityList=entities;
 		var limit= userAnswer.length; //obtener la cantidad de oraciones
@@ -631,7 +626,7 @@ class TreeAnalyzer {
 		var entityAppearances=[];
 		for (let i=0; i < limit; i++) {
 
-			if (userAnswer[i].valid===this.validSentence ){ // si la oración es válida 
+			if (userAnswer[i].valid===this.validSentence ){ // si la oración es válida
 
 				entityAppearances=this.analyzeTokens(userAnswer[i].root,entityToken,entityAppearances);
 
@@ -659,10 +654,9 @@ class TreeAnalyzer {
 	}
 
 
-	/* 
+	/*
 	Propósito: Comparar el token de la respuesta esperada, con el token actual de la respuesta del usuario. Recorrer los modifiers del token
 	de la respuesta del usuario
-	
 	*/
 
 	analyzeTokens(currentToken,answerToken, entityAppearances){
@@ -687,7 +681,6 @@ class TreeAnalyzer {
 /***************************************************************************************
 Próposito: Una clase para comparar las posibles resupestas para una pregunta con la respuesta brindada por el usuario
 		   Para cada posible respuesta se asigna un valor que determina que tan parecida es la respuesta del usuario
-
 ****************************************************************************************/
 /*
  Luego, modificar esta clase para hacer que pueda controlar cuando una keyWord ( entidad) aparece muchas veces
@@ -703,15 +696,16 @@ class AnswersComparator {
 		this.coincidenceFactor= 0.65 ;
 		this.entityList= entities;
 		this.entities=0;
-		
+		//console.log("\n Lista de entidades \n ");
+		//console.log(this.entityList);
 
 	}
 
 	/*
 	Propósito: Comparar el part of speech de ambos token para contar las etiquetas que coinciden. Retorna un valor númerico según las coincidencias
 	*/
-	//FORGIVE: especifica que los tokens son similares si el total de las etiquetas es mayor al de las coincidencias solo por una unidad
-	
+	//FORGIVE: specify that tokens are similar if the total tags is greater than coincidences only by an unit
+
 	compareTokensPartOFSpeech(answerToken, userAnswerToken,forgive){
 		var totalTags=0;
 		var coincidences=0;
@@ -751,7 +745,7 @@ class AnswersComparator {
 			return undefined;
 		}
 
-	// Retorna un valor númerico que establece que tan similar son los modificadores de ambos tokens, 
+	// Retorna un valor númerico que establece que tan similar son los modificadores de ambos tokens,
 	getTokensModifiersCoincidenceDegree(tokenOneModifiers,expectedModifiers){
 
 		if ( expectedModifiers.length === 0 ) {
@@ -815,25 +809,23 @@ class AnswersComparator {
 
 		var tokenModifiers= answerToken.relevantModifiers();
 
-		console.log("cantidad de modifiers: "+ tokenModifiers.length+" \n");
+		
 
 		var modifierComparisonCoincidence;
 		var parentsPartOfSpeechWeight;
 		var modifiersCoincidenceWeight;
 		var coincidenceDegree=0;
 
-		console.log("aswer token text: "+ answerToken.text);
-
 
 		for (let i=0; i < limit; i++){
-		//comparar las etiquetas del partOfspeech
+		//comparar las eitquetas en la clave partOfspeech de ambos tokens
 			parentsPartOfSpeechCoincidence = this.compareTokensPartOFSpeech(answerToken,appearancesList[i],true);
 
-			
-			// obtener los modificadores relevantes del token en la posición i 
+			// obtener los token modificadores relevantes del token en la posición i 
+
 			tokenResModifiers = appearancesList[i].relevantModifiers();
 
-			// Comparar los token modificadores del token de la respuesta del usuario y el token de la respuesta esperada
+			// comparar los tokens modificadores del token de la respuesta del usuario y el token de la respuesta esperada 
 			modifierComparisonCoincidence = this.getTokensModifiersCoincidenceDegree(tokenResModifiers, tokenModifiers);
 
 			parentsPartOfSpeechWeight= 100- ((100 /(tokenModifiers.length+2))* tokenModifiers.length);
@@ -865,30 +857,34 @@ class AnswersComparator {
 
 	}
 
-	/**
-	Pendiente asegurar que los contadores de coincidencias se mantienen consistentes, incluso cuando 
+	/*
+		Falta overificar para que los contadores de coincidencia se mantengan consistentes aún cuando una palabra clave esperada aparece varias veces
 	*/
 	analyzeTokens(token,data) {
-		
+
 		//si el token de la respuesta es una entidad
-		if (token.isEntity(this.entityList)) { 
+    var entity = token.isEntity(this.entityList);
+		if (entity) {
+
+			// NOTA:  Posiblemente deba incluirse dentro de este if el código de buscar las apariciones del token esperado en la respuesta del usuario
 
 			if (token.visited===false){
-
 				//aumentar el contador de entidades para esta respuesta
 				data.answerEntities+=1;
-				token.visited=true;
+        		if(!data.entityList.includes(entity)){
+          				data.entityList.push(entity);}
+						token.visited=true;
 
 			}
 
 
-			// Buscar en la respuesta del usuario, el token actual 
+			// Buscar en la respuesta del usuario, el token actual
 			var  appearancesList = this.treeAnalyzer.searchEntityInAnswer(token, this.userAnswer,this.entityList);
 
 
 			// si el token aparece en la respuesta del usuario aunque sea una vez
-			if ( appearancesList.length >0 ){ 
-				
+			if ( appearancesList.length >0 ){
+
 				//obtener el mayor valor de coincidencia de las apariciones del token en la respuesta del usuario
 				var result= this.AnalyzeEntityAppearances(token,appearancesList);
 				data.amountPercentage+=result;
@@ -899,7 +895,9 @@ class AnswersComparator {
 
 					//increase entity coincidence value in the asnwer JSON response
 					data.entitiesCoincidence+=1;
-
+          			var entity = token.isEntity(this.entityList)
+          			if (!data.coincidenceList.includes(entity)){
+            			data.coincidenceList.push(entity);}
 				}
 			}
 
@@ -911,12 +909,9 @@ class AnswersComparator {
 
 	}
 
-
 	generateNewToken(tokenData){
 
 		var isEntity=true;
-
-		//si existe la clave entity en los datos del token
 		if (tokenData.hasOwnProperty("entity")===false){
 			//undefinied significa que no es una entidad;
 			isEntity= undefined;
@@ -925,15 +920,10 @@ class AnswersComparator {
 		var temp = new TOKEN( tokenData.pos, false, tokenData.text , tokenData.lemma , tokenData.label , tokenData.partOfSpeech , isEntity );
 		temp.setModifiers(tokenData.modifiers);
 		temp.setVisited(tokenData.visited);
+		// tokenData.visited=true;
 		return temp;
 	}
 
-
-	/************************************************************************************************
-	NOTA: Antes de iniciar cada recorrido de respuestas sería necesario convertir en un token cada diccionario que representa la información de una palabra
-		  Para efectos del DEMO,, se hace un objeto cada vez que se requiere. Pero puede mejorarse
-
-	*************************************************************************************************/
 	initComparison(){
 
 		var limit= this.answers.length;
@@ -944,7 +934,7 @@ class AnswersComparator {
 
 			sentences= this.answers[i].length;
 
-			//para cada respuesta guardar unas estadísticas al compararla con el usuario 
+			//para cada respuesta guardar unas estadísticas al compararla con el usuario
 			var answerComparisonData={
 					"index": i,
 					"text": "",
@@ -952,17 +942,21 @@ class AnswersComparator {
 					"answerEntities":0,
 					"entitiesCoincidence":0,
 					"amountPercentage":0,
-					"match":true
+					"match":true,
+          			"entityList":[],
+          			"coincidenceList":[]
 			}
 
 			// recorrer las oraciones de la respuesta
 			for(let j= 0; j< sentences; j++){
 
+				console.log("\n comparando con respuesta \n");
+				console.log("\n" + this.answers[i][j].sentence +"\n");
 				answerComparisonData.text +=  this.answers[i][j].sentence + " ";
 				this.analyzeTokens(this.generateNewToken(this.answers[i][j].root),answerComparisonData);
 
 			}
-		
+
 			// promedio del total del procentaje y el número de entidades que esperaba la respuesta
 
 			answerComparisonData.coincidenceDegree=answerComparisonData.amountPercentage/ answerComparisonData.answerEntities ;
@@ -987,7 +981,6 @@ class AnswersComparator {
 
 /***************************************************************************************
 Próposito: Verificar si la respuesta es correcta con respecto a las palabras clave
-
 ****************************************************************************************/
 class AnswerChecker {
 
@@ -1003,7 +996,7 @@ class AnswerChecker {
 
 		this.totalPoints=this.question.keyWords.length;
 		this.validSentence=0;
-		//lista de palabras clave, las palabras clave q
+		//lista de palabras clave
 		this.synonymsList= this.question.keyWords;
 
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
@@ -1091,8 +1084,6 @@ class AnswerChecker {
 	analyzeSentence(synonymsList,answer) {
 		var score=0;
 		var data= answer.getData();
-
-
 		var limit= data.length; //get the sentences amounts
 		for (let i=0; i < limit; i++) {
 
@@ -1150,11 +1141,13 @@ class Answer{
 }
 
 /***************************************************************************************
-Próposito: Construye un parrafo que contiene todas las oraciones de un texto, Se da un formato mejor para 
-		   cada token del texto. Puede mejorarse en cuanto a reducción de ciclos
+Próposito: Construye un parrafo que contiene todas las oraciones de un texto, Se da un formato mejor para
+		   cada token del texto. Puede optimizarse (reducir la cantidad de ciclos que se utilizan)
 ****************************************************************************************/
 
 class PARAGRAPH {
+
+	// proceso central, para la generación del árbol a partir de lo que retorna el API de google
     constructor(sentences, tokens, entities){
     	this.sentencesValidation=[]; //Tiene valores para representar el estado de las oraciones del párrafo  0= válido, -1 = inválido
         this.tokens = [];
@@ -1188,7 +1181,7 @@ class PARAGRAPH {
         })
 
         var j=0; // es para tener un contador de oraciones, apliado para la validación de cada oración.
-
+        //una nueva instancia, para hacer un objeto de la clase que válida que las oraciones posean lo mínimo para que tengan sentido
         this.sentence= new sentenceChecker();
 
         //dar formato a todos los tokens del árbol gramatica
@@ -1377,11 +1370,9 @@ app.get('/genQuestion', function(req,res) {
 
 	  /*******************************************************
 			Se valida:
-
 			--Que cada respuesta mencione al menos una palabra clave de la lista de palabras clave
 			-- Que cada palabra clave sea utiliza en al menos una respuesta
 			-- Que las oraciones que comprenden cada respuesta sean todas válidas
-
 	  ********************************************************/
 
 	  fileManager.readFile(function(result){
@@ -1528,12 +1519,12 @@ app.get('/isCorrectAnswerAdvanced',function(req,res){
 
 					console.log("\n \n Iniciando comparación de respuestas \n \n ");
 
-					
+
 					var ansC= new AnswersComparator(fileManager.fileData.Questions[req.query.questionID].answers, trees[0],questionData.keyWords);
 					ansC.initComparison();
 
 
-					res.send(JSON.stringify({"success":true, 
+					res.send(JSON.stringify({"success":true,
 										"coincidenceWithAnswers": ansC.coincidenceWithAnswers}));
 
 				}
@@ -1553,8 +1544,6 @@ app.get('/isCorrectAnswerAdvanced',function(req,res){
 
 	});
 })
-
-
 
 var server = app.listen(8081, function ()
 {
