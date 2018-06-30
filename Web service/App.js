@@ -885,13 +885,16 @@ class AnswersComparator {
 
 	}
 
-
+	/**
+	Pendiente validar para que un token de la respuesta no se vuelva a evaluar
+	*/
 	analyzeTokens(token,data) {
 		
 		//si el token de la respuesta es una entidad
 		if (token.isEntity(this.entityList)) { 
 
 			if (token.visited===false){
+
 				//aumentar el contador de entidades para esta respuesta
 				data.answerEntities+=1;
 				token.visited=true;
@@ -928,6 +931,7 @@ class AnswersComparator {
 
 	}
 
+
 	generateNewToken(tokenData){
 
 		var isEntity=true;
@@ -943,6 +947,11 @@ class AnswersComparator {
 		return temp;
 	}
 
+	/************************************************************************************************
+	NOTA: Antes de iniciar cada recorrido de respuestas sería necesario convertir en un token cada diccionario que representa la información de una palabra
+		  Para efectos del DEMO,, se hace un objeto cada vez que se requiere. Pero puede mejorarse
+
+	*************************************************************************************************/
 	initComparison(){
 
 		var limit= this.answers.length;
@@ -1014,7 +1023,7 @@ class AnswerChecker {
 
 		this.totalPoints=this.question.keyWords.length;
 		this.validSentence=0;
-		//lista de palabras clave
+		//lista de palabras clave, las palabras clave q
 		this.synonymsList= this.question.keyWords;
 
 		this.gottenPoints= this.analyzeSentence(this.synonymsList,this.answer);
@@ -1564,6 +1573,9 @@ app.get('/isCorrectAnswerAdvanced',function(req,res){
 
 	});
 })
+
+console.log("strings similares");
+console.log(stringSimilarity.compareTwoStrings("Atributes","Attributes"));
 
 var server = app.listen(8081, function ()
 {
