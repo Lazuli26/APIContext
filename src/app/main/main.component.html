@@ -22,8 +22,127 @@
           <div style="display:flex; flex-direction: row;min-height:40px">
             <mat-spinner *ngIf="processsing" [diameter]="30" style="height:40px;margin-right:10px"></mat-spinner>
             <button mat-raised-button color="primary" (click) = "checkText()" *ngIf="!processsing" [disabled]="!checkEmpty(texto)" style="margin-right:10px">Analyze</button>
-            <button mat-raised-button color="primary" (click) = "answer()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer</button>
+            <button mat-raised-button color="primary" (click) = "answer()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))" style="margin-right:10px">Answer</button>
             <button mat-raised-button color="primary" (click) = "answerAdvanced()" *ngIf="!processsing" [disabled]="(!questionIndex || !checkEmpty(texto))">Answer Advanced</button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile *ngIf="answerResult!=undefined">
+      <mat-card [ngStyle]="{'background-color':getGreenToRed(answerResult.accumulative)}">
+        <mat-card-title>Advanced Answer - Score: {{answerResult.accumulative}}
+          <mat-form-field style="
+            font-size:12px;
+            display:flex;
+            justify-content:flex-end;
+            align-items:center;
+            width:fit-content">
+            <mat-select placeholder="Possible Answer" [(value)]="answerResult.index">
+              <span *ngFor="let answer of Object.keys(answerResult)">
+              <mat-option *ngIf="answerResult[answer].text!=undefined" value = {{answer}}>
+                {{answerResult[answer].text}}
+              </mat-option>
+              </span>
+            </mat-select>
+          </mat-form-field>
+        </mat-card-title>
+        <mat-card-content *ngIf="answerResult.index!=undefined" style="max-height:250px">
+          <div>
+            <b>Expected Entities</b>:
+            {{answerResult[answerResult.index].entityList.toString()}}
+          </div>
+          <div>
+            <b>Found Entities:</b>
+            {{answerResult[answerResult.index].coincidenceList.toString()}}
+          </div>
+          <div>
+            <b>Analysis Score:</b>
+            {{answerResult[answerResult.index].coincidenceDegree*100}}
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile>
+      <mat-card>
+        <mat-card-title>Generate Question</mat-card-title>
+        <mat-card-content class="container">
+          <div>
+            <mat-form-field style="width:100%">
+              <input matInput placeholder="Question" [(ngModel)]="questionGen.question">
+            </mat-form-field>
+          </div>
+          <div style="height:100%; width:100%; overflow: hidden;">
+            <div style="float: left; width:50%;">
+              <div>
+                <mat-form-field style="width: 70%">
+                  <mat-select [(value)]="questionGen.answerIndex" placeholder="Answers">
+                    <mat-option *ngFor="let answer of Object.keys(questionGen.answers)" value = {{answer}}>
+                      {{answer}}: {{questionGen.answers[answer]}}
+                    </mat-option>
+                    <mat-option (click) = "
+                    questionGen.answers.push('');
+                    questionGen.answerIndex=JSON.stringify(questionGen.answers.length-1)">Add Answer</mat-option>
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delAnswer()"
+                    *ngIf="questionGen.answerIndex" [value]="questionGen.answerIndex">Delete {{this.questionGen.answers[questionGen.answerIndex]}}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div>
+                <mat-form-field *ngIf="questionGen.answers[questionGen.answerIndex]!=undefined" style="width:90%">
+                  <textarea matInput
+                            rows="4"
+                            cols="400"
+                            [(ngModel)]="questionGen.answers[questionGen.answerIndex]"
+                            placeholder="Edit">
+                  </textarea>
+                </mat-form-field>
+              </div>
+            </div>
+            <div style="float: left; width:50%;">
+              <div>
+                <mat-form-field>
+                  <input matInput placeholder="Entity name" id="entityName">
+                </mat-form-field>
+                <button
+                  mat-button
+                  (click)="addEntity()">
+                  Add Entity</button>
+              </div>
+              <div>
+                <mat-form-field *ngIf="Object.keys(questionGen.keyWords).length!=0" style="width:20%">
+                  <mat-select [(value)]="questionGen.entityIndex" placeholder="Entity">
+                    <mat-option *ngFor="let entity of Object.keys(questionGen.keyWords)" [value]="entity">
+                      {{entity}}
+                    </mat-option>
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delEntity()"
+                    *ngIf="questionGen.keyWords[questionGen.entityIndex]!=undefined" [value]="questionGen.entityIndex">Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']]}}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field *ngIf="Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex]" style="width:20%">
+                  <mat-select [(value)]="questionGen.synonymsIndex" placeholder="Synonyms">
+                    <mat-option *ngFor="let synonym of Object.keys(questionGen.keyWords[questionGen.entityIndex])" [value]="synonym">
+                      {{synonym}}: {{questionGen.keyWords[questionGen.entityIndex][synonym]}}
+                    </mat-option>
+                    <mat-option (click) = "
+                    questionGen.keyWords[questionGen.entityIndex].push('');
+                    questionGen.synonymsIndex=JSON.stringify(questionGen.keyWords[questionGen.entityIndex].length-1)">Add synonym</mat-option>
+                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delSynonym()"
+                    *ngIf="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined && questionGen.synonymsIndex!=0" [value]="questionGen.synonymsIndex">
+                      Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']][0]}}:{{this.questionGen.keyWords[this.questionGen['entityIndex']][this.questionGen['synonymsIndex']]}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <span *ngIf = "Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex] && questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined">
+                  <mat-form-field style="width: 40%">
+                    <input matInput placeholder="Synonym" [disabled]="questionGen.synonymsIndex==0" [(ngModel)]="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]">
+                  </mat-form-field>
+                  <mat-icon *ngIf="!checkSynonym(questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex])" style="font-size: 18px; color:#f7c613">warning</mat-icon>
+                </span>
+              </div>
+              <div>
+                <button mat-raised-button color="primary" (click)="generate()">Generate Question</button>
+              </div>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
@@ -119,91 +238,6 @@
         <mat-card-title style="font-style: italic">{{label}}</mat-card-title>
         <mat-card-content>
           <pre>{{labels[label]}}</pre>
-        </mat-card-content>
-      </mat-card>
-    </mat-grid-tile>
-    <mat-grid-tile>
-      <mat-card>
-        <mat-card-title>Generate Question</mat-card-title>
-        <mat-card-content class="container">
-          <div>
-            <mat-form-field style="width:100%">
-              <input matInput placeholder="Question" [(ngModel)]="questionGen.question">
-            </mat-form-field>
-          </div>
-          <div style="height:100%; width:100%; overflow: hidden;">
-            <div style="float: left; width:50%;">
-              <div>
-                <mat-form-field style="width: 70%">
-                  <mat-select [(value)]="questionGen.answerIndex" placeholder="Answers">
-                    <mat-option *ngFor="let answer of Object.keys(questionGen.answers)" value = {{answer}}>
-                      {{answer}}: {{questionGen.answers[answer]}}
-                    </mat-option>
-                    <mat-option (click) = "
-                    questionGen.answers.push('');
-                    questionGen.answerIndex=JSON.stringify(questionGen.answers.length-1)">Add Answer</mat-option>
-                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delAnswer()"
-                    *ngIf="questionGen.answerIndex" [value]="questionGen.answerIndex">Delete {{this.questionGen.answers[questionGen.answerIndex]}}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-              <div>
-                <mat-form-field *ngIf="questionGen.answers[questionGen.answerIndex]!=undefined" style="width:90%">
-                  <textarea matInput
-                            rows="4"
-                            cols="400"
-                            [(ngModel)]="questionGen.answers[questionGen.answerIndex]"
-                            placeholder="Edit">
-                  </textarea>
-                </mat-form-field>
-              </div>
-            </div>
-            <div style="float: left; width:50%;">
-              <div>
-                <mat-form-field>
-                  <input matInput placeholder="Entity name" id="entityName">
-                </mat-form-field>
-                <button
-                  mat-button
-                  (click)="addEntity()">
-                  Add Entity</button>
-              </div>
-              <div>
-                <mat-form-field *ngIf="Object.keys(questionGen.keyWords).length!=0" style="width:20%">
-                  <mat-select [(value)]="questionGen.entityIndex" placeholder="Entity">
-                    <mat-option *ngFor="let entity of Object.keys(questionGen.keyWords)" [value]="entity">
-                      {{entity}}
-                    </mat-option>
-                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delEntity()"
-                    *ngIf="questionGen.keyWords[questionGen.entityIndex]!=undefined" [value]="questionGen.entityIndex">Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']]}}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field *ngIf="Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex]" style="width:20%">
-                  <mat-select [(value)]="questionGen.synonymsIndex" placeholder="Synonyms">
-                    <mat-option *ngFor="let synonym of Object.keys(questionGen.keyWords[questionGen.entityIndex])" [value]="synonym">
-                      {{synonym}}: {{questionGen.keyWords[questionGen.entityIndex][synonym]}}
-                    </mat-option>
-                    <mat-option (click) = "
-                    questionGen.keyWords[questionGen.entityIndex].push('');
-                    questionGen.synonymsIndex=JSON.stringify(questionGen.keyWords[questionGen.entityIndex].length-1)">Add synonym</mat-option>
-                    <mat-option style="background-color:#bf0000;color:#ffffff" (click) = "delSynonym()"
-                    *ngIf="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined && questionGen.synonymsIndex!=0" [value]="questionGen.synonymsIndex">
-                      Delete {{this.questionGen.keyWords[this.questionGen['entityIndex']]}}:{{this.questionGen.keyWords[this.questionGen['entityIndex']][this.questionGen['synonymsIndex']]}}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <span *ngIf = "Object.keys(questionGen.keyWords).length!=0 && questionGen.keyWords[questionGen.entityIndex] && questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]!=undefined">
-                  <mat-form-field style="width: 40%">
-                    <input matInput placeholder="Synonym" [disabled]="questionGen.synonymsIndex==0" [(ngModel)]="questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex]">
-                  </mat-form-field>
-                  <mat-icon *ngIf="!checkSynonym(questionGen.keyWords[questionGen.entityIndex][questionGen.synonymsIndex])" style="font-size: 18px; color:#f7c613">warning</mat-icon>
-                </span>
-              </div>
-              <div>
-                <button mat-raised-button color="primary" (click)="generate()">Generate Question</button>
-              </div>
-            </div>
-          </div>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
